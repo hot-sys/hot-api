@@ -43,9 +43,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'clients',
-    'adminuser',
-    'activity',
-    'reservations',
 ]
 
 REST_FRAMEWORK = {
