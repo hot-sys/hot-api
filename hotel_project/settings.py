@@ -42,6 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'hot_clients',
+    'hot_history',
+    'hot_hotel',
+    'hot_rooms',
+    'hot_services',
+    'hot_users',
 ]
 
 REST_FRAMEWORK = {
