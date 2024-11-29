@@ -19,8 +19,5 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/activity/', include('activity.urls')),
-    path('api/admin/', include('adminuser.urls')),
     path('api/clients/', include('clients.urls')),
-    path('api/reservations/', include('reservations.urls')),
 ]
