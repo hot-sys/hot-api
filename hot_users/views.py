@@ -118,10 +118,10 @@ def login(request):
     ]
 )
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@token_required
-@checkUser
-@checkAdmin
+# @authentication_classes([TokenAuthentication])
+# @token_required
+# @checkUser
+# @checkAdmin
 def create(request):
     data = request.data
     dto = RegisterDTO(data=data)

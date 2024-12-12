@@ -118,15 +118,16 @@ SPECTACULAR_SETTINGS = {
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
         'OPTIONS': {
-            'sslmode': 'require',
-            'sslrootcert': os.path.join(BASE_DIR, 'config', 'ca.pem'),
+            'ssl': {
+                'ca': os.path.join(BASE_DIR, 'ca.pem'),
+            },
         },
     }
 }
