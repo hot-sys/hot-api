@@ -7,4 +7,4 @@ def api_response(data=None, message="Success", success=True, status_code=status.
         "code": status_code,
         "message": message,
         "data": data
-    })
+    }, status=status_code)

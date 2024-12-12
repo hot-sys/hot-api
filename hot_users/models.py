@@ -18,6 +18,7 @@ class User(models.Model):
     email = models.EmailField(unique=True)
     genre = models.CharField(max_length=10, blank=True, null=True)
     adress = models.TextField(blank=True, null=True)
+    passwordVersion = models.IntegerField(default=1)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
