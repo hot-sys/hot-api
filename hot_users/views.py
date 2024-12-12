@@ -311,10 +311,10 @@ def get_all_roles(request):
     ]
 )
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@token_required
-@checkUser
-@checkAdmin
+# @authentication_classes([TokenAuthentication])
+# @token_required
+# @checkUser
+# @checkAdmin
 def create_role(request):
     try:
         data = request.data
