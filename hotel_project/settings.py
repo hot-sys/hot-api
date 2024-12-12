@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
     'hot_clients',
     'hot_history',
     'hot_hotel',
@@ -69,6 +70,7 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -104,6 +106,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hotel_project.wsgi.application'
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'HSM API Documentation',
+    'DESCRIPTION': '',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases

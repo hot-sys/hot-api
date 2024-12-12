@@ -10,7 +10,7 @@ class RoleSerializer(serializers.ModelSerializer):
 class UserPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreference
-        fields = 'IdPreference', 'IdUser', 'theme', 'color'
+        fields = 'idPreference', 'idUser', 'theme', 'color'
 
 class UserSerializer(serializers.ModelSerializer):
     preference = UserPreferenceSerializer(read_only=True)

@@ -9,7 +9,58 @@ from hot_users.decorators.checkAdmin import checkAdmin
 import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from rest_framework.authentication import TokenAuthentication
 
+@extend_schema(
+    request=LoginDTO,
+    responses={
+        200: OpenApiResponse(
+            description='Login successful',
+            examples=[
+                {
+                    "application/json": {
+                        "success": True,
+                        "code": 200,
+                        "message": "Login successful",
+                        "data": {
+                            "access_token": "jwt_access_token_here",
+                            "refresh_token": "jwt_refresh_token_here"
+                        }
+                    }
+                }
+            ]
+        ),
+        400: OpenApiResponse(
+            description='Invalid credentials',
+            examples=[
+                {
+                    "application/json": {
+                        "success": False,
+                        "code": 400,
+                        "message": "Invalid credentials",
+                        "data": None
+                    }
+                }
+            ]
+        ),
+        404: OpenApiResponse(
+            description='Role not found',
+            examples=[
+                {
+                    "application/json": {
+                        "success": False,
+                        "code": 404,
+                        "message": "Role not found",
+                        "data": None
+                    }
+                }
+            ]
+        )
+    },
+    description="User login to obtain JWT tokens (access & refresh)",
+    summary="User login"
+)
 @api_view(['POST'])
 def login(request):
     data = request.data
@@ -48,8 +99,26 @@ def login(request):
         return api_response(message="Invalid credentials", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
+
+@extend_schema(
+    request=RegisterDTO,
+    responses={
+        201: UserSerializer,
+        400: OpenApiResponse(description='Invalid input data or user data')  
+    },
+    description="Endpoint to create a new user. The user must provide the necessary registration data.",
+    summary="Create new user",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['POST'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 @checkAdmin
@@ -67,8 +136,24 @@ def create(request):
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
 
+@extend_schema(
+    responses={
+        200: UserSerializerResponse,
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to fetch details of the current logged-in user",
+    summary="Get current user details",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['GET'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 def current_user(request):
@@ -81,8 +166,24 @@ def current_user(request):
         return api_response(message="User not found", success=False, status_code=404)
 
 
+@extend_schema(
+    responses={
+        200: UserSerializerResponse(many=True),
+        404: OpenApiResponse(description='Users not found')
+    },
+    description="Endpoint to get all registered users. Requires admin privileges.",
+    summary="Get all users",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['GET'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 @checkAdmin
@@ -94,8 +195,30 @@ def get_all_users(request):
     except User.DoesNotExist:
         return api_response(message="Users not found", success=False, status_code=404)
 
+@extend_schema(
+    responses={
+        200: UserSerializerResponse,
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to get the details of a specific user by their ID. Requires user validation.",
+    summary="Get user details by ID",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idUser',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
 @api_view(['GET'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 def get_user(request, idUser):
@@ -106,8 +229,30 @@ def get_user(request, idUser):
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
 
+@extend_schema(
+    responses={
+        200: RoleSerializer,
+        404: OpenApiResponse(description='Role not found')
+    },
+    description="Endpoint to retrieve a role by its ID. Requires authentication.",
+    summary="Get role by ID",
+    parameters=[
+        OpenApiParameter(
+            name='idRole',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        ),
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['GET'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 @checkAdmin
@@ -119,8 +264,24 @@ def get_role(request, idRole):
     except Role.DoesNotExist:
         return api_response(message="Role not found", success=False, status_code=404)
 
+@extend_schema(
+    responses={
+        200: RoleSerializer(many=True),
+        404: OpenApiResponse(description='Roles not found')
+    },
+    description="Endpoint to retrieve all roles. Requires authentication.",
+    summary="Get all roles",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['GET'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 @checkAdmin
@@ -132,8 +293,25 @@ def get_all_roles(request):
     except Role.DoesNotExist:
         return api_response(message="Roles not found", success=False, status_code=404)
 
+@extend_schema(
+    responses={
+        201: RoleSerializer,
+        400: OpenApiResponse(description='Invalid input data'),
+        404: OpenApiResponse(description='Role not found')
+    },
+    description="Endpoint to create a new role. Requires authentication.",
+    summary="Create role",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['POST'])
-@authentication_classes([])
+@authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
 @checkAdmin
