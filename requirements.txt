@@ -2,6 +2,7 @@ absl-py==2.1.0
 asgiref==3.8.1
 astor==0.8.1
 asttokens==2.4.1
+attrs==24.2.0
 bcrypt==4.1.2
 bleach==1.5.0
 cachetools==5.3.3
@@ -25,6 +26,7 @@ djangorestframework-simplejwt==5.3.1
 djangotoolbox==1.8.0
 djongo==1.3.6
 dnspython==2.5.0
+drf-spectacular==0.28.0
 drf-yasg==1.21.8
 et-xmlfile==1.1.0
 executing==2.0.1
@@ -47,6 +49,8 @@ ipykernel==6.29.2
 ipython==8.21.0
 jedi==0.19.1
 joblib==1.4.0
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
 jupyter_client==8.6.0
 jupyter_core==5.7.1
 kiwisolver==1.4.5
@@ -88,7 +92,9 @@ pytz==2024.1
 pywin32==306
 PyYAML==6.0.2
 pyzmq==25.1.2
+referencing==0.35.1
 requests==2.32.3
+rpds-py==0.22.3
 rsa==4.9
 scikit-learn==1.4.2
 scipy==1.13.0
