@@ -31,7 +31,7 @@ class LoginDTO(serializers.Serializer):
 class RegisterDTO(serializers.Serializer):
     idRole = serializers.IntegerField(required=True)
     login = serializers.CharField(max_length=255, required=True)
-    password = serializers.CharField(max_length=255, required=True)
+    password = serializers.CharField(max_length=255, min_length=8, required=True)
     name = serializers.CharField(max_length=255, required=True)
     firstname = serializers.CharField(max_length=255, required=True)
     email = serializers.EmailField(required=True)
@@ -42,6 +42,15 @@ class RegisterDTO(serializers.Serializer):
         if not Role.objects.filter(idRole=value).exists():
             return api_response(message="Role not found", success=False, status_code=404)
         return value
+
+class UpdateUserDto(serializers.Serializer):
+    name = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    firstname = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    genre = serializers.CharField(max_length=10, required=False, allow_blank=True, allow_null=True)
+    adress = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    password = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
 
 class RoleDTO(serializers.Serializer):
     poste = serializers.CharField(max_length=255, required=True)

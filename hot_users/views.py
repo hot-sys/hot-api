@@ -2,7 +2,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from utils.token_required import token_required
 from rest_framework.decorators import api_view, authentication_classes
 from .models import User, Role
-from .serializers import UserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, RoleDTO
+from .serializers import UserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, UpdateUserDto, RoleDTO
 from utils.api_response import api_response
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
@@ -135,6 +135,162 @@ def create(request):
         return api_response(data=serializer.errors, message="Invalid user data", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
+@extend_schema(
+    request=UpdateUserDto,
+    responses={
+        200: UserSerializerResponse,
+        400: OpenApiResponse(description='Invalid input data'),
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to update the details of the current logged-in user. Requires user validation.",
+    summary="Update user details",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def update_current_user(request):
+    data = request.data
+    dto = UpdateUserDto(data=data)
+    if dto.is_valid():
+        validated_data = dto.validated_data
+        idUser = request.idUser
+        try:
+            user = User.objects.get(idUser=idUser)
+            for key, value in validated_data.items():
+                if key == 'password':
+                    value = make_password(value)
+                    user.passwordVersion += 1
+                setattr(user, key, value)
+            user.save()
+            serializer = UserSerializerResponse(user)
+            return api_response(data=serializer.data, message="User updated successfully")
+        except User.DoesNotExist:
+            return api_response(message="User not found", success=False, status_code=404)
+    return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
+
+@extend_schema(
+    request=UpdateUserDto,
+    responses={
+        200: UserSerializerResponse,
+        400: OpenApiResponse(description='Invalid input data'),
+        403: OpenApiResponse(description='Update other account available'),
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to update the details of a user by Administration. Requires user validation and the ability (admin) to update other users.",
+    summary="Update user details by admin",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def update_admin_user(request, idUser):
+    data = request.data
+    dto = UpdateUserDto(data=data)
+    current_user = request.idUser
+    if current_user == idUser:
+        return api_response(message="Update other account available", success=False, status_code=403)
+    if dto.is_valid():
+        validated_data = dto.validated_data
+        try:
+            user = User.objects.get(idUser=idUser)
+            for key, value in validated_data.items():
+                if key == 'password':
+                    value = make_password(value)
+                    user.passwordVersion += 1
+                setattr(user, key, value)
+            user.save()
+            serializer = UserSerializerResponse(user)
+            return api_response(data=serializer.data, message="User updated successfully")
+        except User.DoesNotExist:
+            return api_response(message="User not found", success=False, status_code=404)
+    return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description='User deleted successfully'),
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to delete an user. Requires user validation and the ability (admin) to delete other users.",
+    summary="Delete user by admin",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['DELETE'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def delete_user(request, idUser):
+    currentUser = request.idUser
+    if currentUser == idUser:
+        return api_response(message="Cannot delete current user account", success=False, status_code=403)
+    try:
+        user = User.objects.get(idUser=idUser)
+        user.deletedAt = datetime.now()
+        user.save()
+        return api_response(message="User deleted successfully")
+    except User.DoesNotExist:
+        return api_response(message="User not found", success=False, status_code=404)
+
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description='User recovered successfully'),
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to recover a deleted user. Requires user validation and the ability (admin) to recover other users.",
+    summary="Recover user by admin",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PUT'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def recover_user(request, idUser):
+    try:
+        current_user = request.idUser
+        if current_user == idUser:
+            return api_response(message="Cannot recover current user account", success=False, status_code=403)
+        user = User.all_objects.get(idUser=idUser)
+        if user.deletedAt == None:
+            return api_response(message="User already active", success=False, status_code=400)
+        user.deletedAt = None
+        user.save()
+        return api_response(message="User recovered successfully")
+    except User.DoesNotExist:
+        return api_response(message="User not found", success=False, status_code=404)
 
 @extend_schema(
     responses={
@@ -164,7 +320,6 @@ def current_user(request):
         return api_response(data=serializer.data)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
-
 
 @extend_schema(
     responses={
@@ -223,7 +378,7 @@ def get_all_users(request):
 @checkUser
 def get_user(request, idUser):
     try:
-        user = User.objects.get(id=idUser)
+        user = User.objects.get(idUser=idUser)
         serializer = UserSerializerResponse(user)
         return api_response(data=serializer.data)
     except User.DoesNotExist:

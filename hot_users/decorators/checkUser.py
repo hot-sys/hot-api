@@ -10,7 +10,6 @@ def checkUser(f):
         idUser = request.idUser
         idRole = request.idRole
         passwordVersion = request.passwordVersion
-        print(idUser, idRole, passwordVersion)
         try:
             user = User.objects.get(idUser=idUser)
             try:

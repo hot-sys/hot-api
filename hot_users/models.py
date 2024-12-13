@@ -1,5 +1,13 @@
 from django.db import models
 
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deletedAt__isnull=True)
+
+class AllUserManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset()
+
 class Role(models.Model):
     idRole = models.AutoField(primary_key=True)
     poste = models.CharField(max_length=255)
@@ -22,6 +30,9 @@ class User(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
+
+    objects = SoftDeleteManager()
+    all_objects = AllUserManager()
 
     def __str__(self):
         return f"{self.firstname} {self.name}"
