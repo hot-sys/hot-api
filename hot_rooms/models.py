@@ -3,6 +3,14 @@ from hot_users.models import User
 from hot_clients.models import Client
 from hot_services.models import Status
 
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deletedAt__isnull=True)
+
+class AllRoomManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset()
+
 class Room(models.Model):
     idRoom = models.AutoField(primary_key=True)
     idAdmin = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -17,6 +25,8 @@ class Room(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
 
+    objects = SoftDeleteManager()
+    all_objects = AllRoomManager()
     def __str__(self):
         return self.title
 

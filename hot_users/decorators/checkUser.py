@@ -18,6 +18,7 @@ def checkUser(f):
                 return api_response(message="Role not found", success=False, status_code=404)
             if dataRole.data["idRole"] != idRole or user.passwordVersion != passwordVersion:
                 return api_response(message="Unauthorized access", success=False, status_code=401)
+            request.userInstance = user
             return f(*args, **kwargs)
         except User.DoesNotExist:
             return api_response(message="Users not found", success=False, status_code=404)

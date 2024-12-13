@@ -34,7 +34,7 @@ class UpdatePosteDTO(serializers.Serializer):
 
     def validate(self, data):
         if len(data) != 1 or "idRole" not in data:
-            return api_response(message="Only 'idRole' is allowed in the request.", success=False, status_code=400)
+            raise serializers.ValidationError("Only one field is allowed in the request.")
         return data
 
 class LoginDTO(serializers.Serializer):
@@ -53,15 +53,15 @@ class RegisterDTO(serializers.Serializer):
     adress = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     def validate_idRole(self, value):
         if not Role.objects.filter(idRole=value).exists():
-            return api_response(message="Role not found", success=False, status_code=404)
+            raise serializers.ValidationError("Role not found")
         return value
     def checkLogin(self, value):
         if User.objects.filter(login=value).exists():
-            return api_response(message="Login already exists.", success=False, status_code=400)
+            raise serializers.ValidationError("Login already exists.")
         return value
     def checkEmail(self, value):
         if User.objects.filter(email=value).exists():
-            return api_response(message="Email already exists.", success=False, status_code=400)
+            raise serializers.ValidationError("Email already exists.")
         return value
 
 class UpdateUserDto(serializers.Serializer):
@@ -77,5 +77,5 @@ class RoleDTO(serializers.Serializer):
     poste = serializers.CharField(max_length=255, required=True)
     def validate_poste(self, value):
         if Role.objects.filter(poste=value).exists():
-            return api_response(message="Role with poste already exists.", success=False, status_code=400)
+            raise serializers.ValidationError("Role with poste already exists.")
         return value
