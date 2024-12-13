@@ -12,12 +12,17 @@ class RoomSerializer(serializers.ModelSerializer):
         model = Room
         fields = 'idRoom', 'idAdmin', 'title', 'subTitle', 'description', 'price', 'available', 'dateAvailable', 'info'
 
+class RoomResponseSerializer(serializers.ModelSerializer):
+    idAdmin = UserSerializerResponse(read_only=True)
+    class Meta:
+        model = Room
+        fields = 'idRoom', 'idAdmin', 'title', 'subTitle', 'description', 'price', 'available', 'dateAvailable', 'info', 'createdAt', 'updatedAt'
 
 class CreateRoomDTO(serializers.Serializer):
     title = serializers.CharField(max_length=255, required=True)
     subTitle = serializers.CharField(max_length=255, required=False)
     description = serializers.CharField(required=True)
-    price = serializers.IntegerField(required=True)
+    price = serializers.IntegerField(min_value=0, max_value=1000000, required=True)
     available = serializers.BooleanField(required=True)
     dateAvailable = serializers.DateTimeField(required=False)
     info = serializers.JSONField(required=False)
@@ -30,6 +35,25 @@ class CreateRoomDTO(serializers.Serializer):
             return value
         except User.DoesNotExist:
             raise serializers.ValidationError("User not found")
+
+    def validate_title(self, value):
+        if Room.objects.filter(title=value).exists():
+            raise serializers.ValidationError("Title already exists")
+        return value
+
+    def validate_dateAvailable(self, value):
+        if value is not None and value < timezone.now():
+            raise serializers.ValidationError("Date available must be greater than the current date")
+        return value
+
+class UpdateRoomDTO(serializers.Serializer):
+    title = serializers.CharField(max_length=255, required=False)
+    subTitle = serializers.CharField(max_length=255, required=False)
+    description = serializers.CharField(required=False)
+    price = serializers.IntegerField(required=False)
+    available = serializers.BooleanField(required=False)
+    dateAvailable = serializers.DateTimeField(required=False)
+    info = serializers.JSONField(required=False)
 
     def validate_title(self, value):
         if Room.objects.filter(title=value).exists():

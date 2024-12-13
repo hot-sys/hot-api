@@ -20,7 +20,7 @@ from rest_framework.authentication import TokenAuthentication
         404: OpenApiResponse(description='Role not found')
     },
     description="User login to obtain JWT tokens (access & refresh)",
-    summary="User login"
+    summary="User login",
 )
 @api_view(['POST'])
 def login(request):

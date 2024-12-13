@@ -2,6 +2,7 @@ from django.db import models
 from hot_users.models import User
 from hot_clients.models import Client
 from hot_services.models import Status
+from hot_rooms.validators.price import validate_positive
 
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
@@ -17,7 +18,7 @@ class Room(models.Model):
     title = models.CharField(max_length=255)
     subTitle = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    price = models.IntegerField()
+    price = models.IntegerField(validators=[validate_positive])
     available = models.BooleanField(default=True)
     dateAvailable = models.DateTimeField(blank=True, null=True)
     info = models.JSONField(blank=True, null=True)

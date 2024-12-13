@@ -6,9 +6,10 @@ from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from .models import Room
-from .serializers import RoomSerializer, CreateRoomDTO
+from .serializers import RoomSerializer, RoomResponseSerializer, CreateRoomDTO, UpdateRoomDTO
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
+from datetime import datetime, timedelta
 
 @extend_schema(
     request=CreateRoomDTO,
@@ -84,7 +85,7 @@ def all(request):
         except EmptyPage:
             rooms_paginated = []
 
-        serializer = RoomSerializer(rooms_paginated, many=True)
+        serializer = RoomResponseSerializer(rooms_paginated, many=True)
         data_paginated = {
             'rooms': serializer.data,
             'paginations': {
@@ -117,11 +118,126 @@ def all(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-def getRoom(request, idRoom):
+def get_room(request, idRoom):
     try:
         room = Room.objects.get(idRoom=idRoom)
-        serializer = RoomSerializer(room)
+        serializer = RoomResponseSerializer(room)
         return api_response(data=serializer.data, message="Room retrieved successfully", success=True, status_code=200)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    request=UpdateRoomDTO,
+    responses={
+        200: OpenApiResponse(description="Room updated successfully"),
+        404: OpenApiResponse(description="Room not found")
+    },
+    description="Update a room by ID",
+    summary="Update room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def update_by_admin(request, idRoom):
+    data = request.data
+    if 'idAdmin' in data:
+        return api_response(data=None, message="You can't update room admin", success=False, status_code=403)
+
+    dto = UpdateRoomDTO(data=data)
+    if dto.is_valid():
+        validated_data = dto.validated_data
+        try:
+            room = Room.objects.get(idRoom=idRoom)
+            currentUser = request.idUser
+            if room.idAdmin_id != currentUser:
+                return api_response(data=None, message="You can't update this room", success=False, status_code=403)
+            for key, value in validated_data.items():
+                setattr(room, key, value)
+            room.save()
+            serializer = RoomResponseSerializer(room)
+            return api_response(data=serializer.data, message="Room updated successfully", success=True, status_code=200)
+        except Room.DoesNotExist:
+            return api_response(data=None, message="Room not found", success=False, status_code=404)
+    else:
+        return api_response(data=None, message=dto.errors, success=False, status_code=400)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Room deleted successfully"),
+        404: OpenApiResponse(description="Room not found")
+    },
+    description="Delete a room by ID",
+    summary="Delete room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['DELETE'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def delete_by_admin(request, idRoom):
+    try:
+        currentUser = request.idUser
+        room = Room.objects.get(idRoom=idRoom)
+        if room.idAdmin_id!= currentUser:
+            return api_response(data=None, message="You can't delete this room", success=False, status_code=403)
+        room.deletedAt = datetime.now()
+        room.save()
+        return api_response(data=None, message="Room deleted successfully", success=True, status_code=200)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Room recovered successfully"),
+        404: OpenApiResponse(description="Room not found")
+    },
+    description="Recover a deleted room by ID",
+    summary="Recover room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PUT'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def recover_by_admin(request, idRoom):
+    try:
+        currentUser = request.idUser
+        room = Room.all_objects.get(idRoom=idRoom)
+        if room.idAdmin_id != currentUser:
+            return api_response(data=None, message="You can't recover this room", success=False, status_code=403)
+        room.deletedAt = None
+        room.save()
+        return api_response(data=None, message="Room recovered successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
     except Exception as e:

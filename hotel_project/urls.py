@@ -19,15 +19,15 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.views.generic.base import RedirectView
 
 def custom_404_view(request, exception=None):
-    return RedirectView.as_view(url='/docs/users/', permanent=False)(request)
+    return RedirectView.as_view(url='/docs/api/', permanent=False)(request)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('docs/api/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='users-swagger-ui'),
+    path('docs/schema/', SpectacularAPIView.as_view(), name='api-schema'),
     path('api/users/', include('hot_users.urls')),
     path('api/rooms/', include('hot_rooms.urls')),
-    path('docs/users/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('', RedirectView.as_view(url='/docs/users/', permanent=True)),
+    path('', RedirectView.as_view(url='/docs/api/', permanent=True)),
 ]
 
 handler404 = custom_404_view
