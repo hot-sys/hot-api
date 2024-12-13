@@ -1,7 +1,0 @@
-docker-compose build
-
-OR
-
-docker build -t hot-app .
-
-docker run -p 10000:10000 --env-file .env hot-app
