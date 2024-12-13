@@ -1,5 +1,6 @@
 from functools import wraps
 from utils.api_response import api_response
+
 def checkAdmin(f):
     @wraps(f)
     def decorated(*args, **kwargs):

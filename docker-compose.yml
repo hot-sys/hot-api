@@ -1,28 +1,13 @@
-version: '3.8'
+version: "3.9"
 
 services:
   web:
     build: .
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-    container_name: backend
+    ports:
+      - "10000:10000"
+    env_file:
+      - .env
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-
-  postgres:
-    image: postgres:latest
-    container_name: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: hotel_management
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
-
-volumes:
-  postgres_data:
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:10000"
