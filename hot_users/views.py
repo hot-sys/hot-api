@@ -2,7 +2,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from utils.token_required import token_required
 from rest_framework.decorators import api_view, authentication_classes
 from .models import User, Role
-from .serializers import UserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, UpdateUserDto, RoleDTO
+from .serializers import UserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, UpdateUserDto, RoleDTO, UpdatePosteDTO
 from utils.api_response import api_response
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
@@ -223,6 +223,25 @@ def update_admin_user(request, idUser):
             return api_response(message="User not found", success=False, status_code=404)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
+
+@extend_schema(
+    responses={
+        200: UserSerializerResponse,
+        400: OpenApiResponse(description='User already have this poste'),
+        403: OpenApiResponse(description='Cannot update current user poste'),
+        404: OpenApiResponse(description='Role or User not found')
+    },
+    description="Endpoint to update the poste of a user by Administration. Requires user validation and the ability (admin) to update other users.",
+    summary="Update user poste by admin",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
 @api_view(['PATCH'])
 @authentication_classes([TokenAuthentication])
 @token_required
@@ -234,20 +253,17 @@ def update_poste(request, idUser):
     if current_user == idUser:
         return api_response(message="Cannot update current user poste", success=False, status_code=403)
     try:
-        try:
-            checkRole = Role.objects.get(idRole=data['idRole'])
-        except Role.DoesNotExist:
-            return api_response(message="Role not found", success=False, status_code=404)
+        dto = UpdatePosteDTO(data=request.data)
+        if dto.is_valid():
+            user = User.objects.get(idUser=idUser)
+            if data["idRole"] == UserSerializerResponse(user).data["idRole"]:
+                return api_response(message="User already have this poste", success=False, status_code=400)
 
-        user = User.objects.get(idUser=idUser)
-
-        if data["idRole"] == UserSerializerResponse(user).data["idRole"]:
-            return api_response(message="User already have this poste", success=False, status_code=400)
-
-        user.idRole = checkRole
-        user.save()
-        serializer = UserSerializerResponse(user)
-        return api_response(data=serializer.data, message="User poste updated successfully")
+            user.idRole = dto.validated_data["idRole"]
+            user.save()
+            serializer = UserSerializerResponse(user)
+            return api_response(data=serializer.data, message="User poste updated successfully")
+        return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
 
