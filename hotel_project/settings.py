@@ -47,7 +47,7 @@ SIMPLE_JWT = {
 # TOKEN KEY FOR DEV
 TOKEN_KEY = 'dev'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
