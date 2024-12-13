@@ -15,48 +15,9 @@ from rest_framework.authentication import TokenAuthentication
 @extend_schema(
     request=LoginDTO,
     responses={
-        200: OpenApiResponse(
-            description='Login successful',
-            examples=[
-                {
-                    "application/json": {
-                        "success": True,
-                        "code": 200,
-                        "message": "Login successful",
-                        "data": {
-                            "access_token": "jwt_access_token_here",
-                            "refresh_token": "jwt_refresh_token_here"
-                        }
-                    }
-                }
-            ]
-        ),
-        400: OpenApiResponse(
-            description='Invalid credentials',
-            examples=[
-                {
-                    "application/json": {
-                        "success": False,
-                        "code": 400,
-                        "message": "Invalid credentials",
-                        "data": None
-                    }
-                }
-            ]
-        ),
-        404: OpenApiResponse(
-            description='Role not found',
-            examples=[
-                {
-                    "application/json": {
-                        "success": False,
-                        "code": 404,
-                        "message": "Role not found",
-                        "data": None
-                    }
-                }
-            ]
-        )
+        200: OpenApiResponse(description='Login successful'),
+        400: OpenApiResponse(description='Invalid credentials'),
+        404: OpenApiResponse(description='Role not found')
     },
     description="User login to obtain JWT tokens (access & refresh)",
     summary="User login"
@@ -98,7 +59,6 @@ def login(request):
 
         return api_response(message="Invalid credentials", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
-
 
 @extend_schema(
     request=RegisterDTO,

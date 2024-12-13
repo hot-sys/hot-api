@@ -24,6 +24,7 @@ def custom_404_view(request, exception=None):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('hot_users.urls')),
+    path('api/rooms/', include('hot_rooms.urls')),
     path('docs/users/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('', RedirectView.as_view(url='/docs/users/', permanent=True)),
