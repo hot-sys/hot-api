@@ -223,6 +223,34 @@ def update_admin_user(request, idUser):
             return api_response(message="User not found", success=False, status_code=404)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def update_poste(request, idUser):
+    data = request.data
+    current_user = request.idUser
+    if current_user == idUser:
+        return api_response(message="Cannot update current user poste", success=False, status_code=403)
+    try:
+        try:
+            checkRole = Role.objects.get(idRole=data['idRole'])
+        except Role.DoesNotExist:
+            return api_response(message="Role not found", success=False, status_code=404)
+
+        user = User.objects.get(idUser=idUser)
+
+        if data["idRole"] == UserSerializerResponse(user).data["idRole"]:
+            return api_response(message="User already have this poste", success=False, status_code=400)
+
+        user.idRole = checkRole
+        user.save()
+        serializer = UserSerializerResponse(user)
+        return api_response(data=serializer.data, message="User poste updated successfully")
+    except User.DoesNotExist:
+        return api_response(message="User not found", success=False, status_code=404)
+
 @extend_schema(
     responses={
         200: OpenApiResponse(description='User deleted successfully'),
