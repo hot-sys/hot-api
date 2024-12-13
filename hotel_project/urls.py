@@ -14,13 +14,22 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from django.views.generic.base import RedirectView
+
+def custom_404_view(request, exception=None):
+    return RedirectView.as_view(url='/docs/users/', permanent=False)(request)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('hot_users.urls')),
     path('docs/users/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    # path('api/clients/', include('clients.urls')),
+    path('', RedirectView.as_view(url='/docs/users/', permanent=True)),
+]
+
+handler404 = custom_404_view
+urlpatterns += [
+    re_path(r'^.*$', custom_404_view),
 ]
