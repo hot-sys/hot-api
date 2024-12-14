@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/users/', include('hot_users.urls')),
     path('api/rooms/', include('hot_rooms.urls')),
     path('api/services/', include('hot_services.urls')),
+    path('api/clients/', include('hot_clients.urls')),
     path('', RedirectView.as_view(url='/docs/api/', permanent=True)),
 ]
 
