@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import create, update_current_user, update_admin_user, update_poste, delete_user, recover_user, create_role, login, current_user, get_role, get_all_roles, get_all_users, get_user
+from .views import create, update_current_user, update_admin_user, update_poste, update_role, delete_user, recover_user, create_role, login, current_user, get_role, get_all_roles, get_all_users, get_user
 
 
 urlpatterns = [
@@ -16,4 +16,5 @@ urlpatterns = [
     path('role', get_all_roles, name='get_all_roles'),
     path('role/<int:idRole>', get_role, name='get_role'),
     path('createrole/', create_role, name='create_role'),
+    path('updaterole/<int:idRole>', update_role, name='update_role'),
 ]

@@ -16,7 +16,10 @@ from django.db.models import Q
 
 @extend_schema(
     request=CreateRoomDTO,
-    responses={200: OpenApiResponse(description="Room created")},
+    responses={
+        200: OpenApiResponse(description="Room created"),
+        500: OpenApiResponse(description="Internal server error")
+    },
     description="Create a room with the given data",
     summary="Create room",
     parameters=[

@@ -7,6 +7,11 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = 'idRole', 'poste'
 
+    def validate_poste(self, value):
+        if Role.objects.filter(poste=value).exists():
+            raise serializers.ValidationError("Role with poste already exists.")
+        return value
+
 class UserPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreference

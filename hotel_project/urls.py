@@ -27,6 +27,7 @@ urlpatterns = [
     path('docs/schema/', SpectacularAPIView.as_view(), name='api-schema'),
     path('api/users/', include('hot_users.urls')),
     path('api/rooms/', include('hot_rooms.urls')),
+    path('api/services/', include('hot_services.urls')),
     path('', RedirectView.as_view(url='/docs/api/', permanent=True)),
 ]
 

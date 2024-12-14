@@ -454,6 +454,41 @@ def get_all_roles(request):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description='Role updated'),
+        404: OpenApiResponse(description='Role not found')
+    },
+    description="Endpoint to update a role by its ID. Requires authentication.",
+    summary="Update role",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def update_role(request, idRole):
+    try:
+        role = Role.objects.get(idRole=idRole)
+        data = request.data
+        serializer = RoleSerializer(role, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(message="Role updated", success=True, status_code=200)
+        return api_response(message=serializer.errors, success=False, status_code=400)
+    except Role.DoesNotExist:
+        return api_response(message="Role not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
         201: RoleSerializer,
         400: OpenApiResponse(description='Invalid input data'),
         404: OpenApiResponse(description='Role not found')
