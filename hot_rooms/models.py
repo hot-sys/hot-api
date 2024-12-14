@@ -48,6 +48,8 @@ class CommandeRoom(models.Model):
     idStatus = models.ForeignKey(Status, on_delete=models.CASCADE)
     DateStart = models.DateTimeField()
     DateEnd = models.DateTimeField()
+    price = models.IntegerField(default=0)
+    total = models.IntegerField(default=0)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)

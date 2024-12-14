@@ -1,10 +1,12 @@
 from rest_framework import serializers
-from .models import Room, RoomImage
+from .models import Room, RoomImage, CommandeRoom
 from hot_users.models import User
 from hot_users.serializers import UserSerializerResponse
+from hot_services.serializers import StatusSerializer
+from hot_clients.serializers import ClientSerializer
+from hot_services.models import Status
 from utils.api_response import api_response
 from django.utils import timezone
-
 
 class RoomSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse(read_only=True)
@@ -23,6 +25,58 @@ class RoomImageSerializer(serializers.ModelSerializer):
         model = RoomImage
         fields = ('idImage', 'idRoom', 'image', 'uploaded_at')
 
+class CommandeRoomSerializer(serializers.ModelSerializer):
+    idRoom = RoomResponseSerializer(read_only=True)
+    idClient = ClientSerializer(read_only=True)
+    idAdmin = UserSerializerResponse(read_only=True)
+    idStatus = StatusSerializer(read_only=True)
+    class Meta:
+        model = CommandeRoom
+        fields = 'idCommande', 'idRoom', 'idClient', 'idAdmin', 'idStatus', 'DateStart', 'DateEnd', 'price', 'total', 'createdAt'
+
+class CreateCommandeDTO(serializers.Serializer):
+    idRoom = serializers.IntegerField(required=True)
+    idClient = serializers.IntegerField(required=True)
+    idStatus = serializers.IntegerField(required=True)
+    DateStart = serializers.DateTimeField(required=True)
+    DateEnd = serializers.DateTimeField(required=True)
+
+    def validate_idRoom(self, value):
+        if not Room.objects.filter(idRoom=value).exists():
+            raise serializers.ValidationError("Room not found")
+        if Room.objects.get(idRoom=value).available == False:
+            raise serializers.ValidationError("Room not available")
+        return value
+
+    def validate_idClient(self, value):
+        if not User.objects.filter(idUser=value).exists():
+            raise serializers.ValidationError("Client not found")
+        return value
+
+    def validate_idStatus(self, value):
+        if not Status.objects.filter(idStatus=value).exists():
+            raise serializers.ValidationError("Status not found")
+        return value
+
+    def validate_DateStart(self, value):
+        if value < timezone.now():
+            raise serializers.ValidationError("Date start must be greater than the current date")
+        return value
+
+    def validate_DateEnd(self, value):
+        if value < timezone.now():
+            raise serializers.ValidationError("Date end must be greater than the current date")
+        return value
+
+    def check_date(self, start, end):
+        if start > end:
+            raise serializers.ValidationError("Date start must be less than date end")
+    def check_if_date_exist_in_commande(self, idRoom, start, end):
+        if CommandeRoom.objects.filter(idRoom=idRoom, DateStart__lte=start, DateEnd__gte=start).exists() or CommandeRoom.objects.filter(idRoom=idRoom, DateStart__lte=end, DateEnd__gte=end).exists():
+            raise serializers.ValidationError("Room already booked for this period")
+        if CommandeRoom.objects.filter(idRoom=idRoom, DateStart__gte=start, DateEnd__lte=end).exists():
+            raise serializers.ValidationError("Room already booked for this period")
+    
 class CreateRoomDTO(serializers.Serializer):
     title = serializers.CharField(max_length=255, required=True)
     subTitle = serializers.CharField(max_length=255, required=False)

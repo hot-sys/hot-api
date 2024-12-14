@@ -6,13 +6,243 @@ from rest_framework.authentication import TokenAuthentication
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from .models import Room, RoomImage
-from .serializers import RoomSerializer, RoomImageSerializer, RoomResponseSerializer, CreateRoomDTO, UpdateRoomDTO
+from .models import Room, RoomImage, CommandeRoom
+from .serializers import CommandeRoomSerializer, RoomSerializer, RoomImageSerializer, RoomResponseSerializer, CreateRoomDTO, UpdateRoomDTO, CreateCommandeDTO
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from datetime import datetime, timedelta
 from utils.services.supabase_room_service import upload_images, remove_file
 from django.db.models import Q
+
+@extend_schema(
+    request=CreateCommandeDTO,
+    responses={
+        200: OpenApiResponse(description="Commande created successfully"),
+        400: OpenApiResponse(description="Invalid data")
+    },
+    description="Create a commande",
+    summary="Create a commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def commande(request):
+    data = request.data
+    dto = CreateCommandeDTO(data=data)
+    if dto.is_valid():
+        validated_data = dto.validated_data
+        idAdmin = request.idUser
+        with transaction.atomic():
+            price = Room.objects.get(idRoom=validated_data['idRoom']).price
+            total = price * (validated_data['DateEnd'] - validated_data['DateStart']).days
+            commande = CommandeRoom.objects.create(
+                idRoom_id=validated_data['idRoom'],
+                idClient_id=validated_data['idClient'],
+                idAdmin_id=idAdmin,
+                idStatus_id=validated_data['idStatus'],
+                DateStart=validated_data['DateStart'],
+                DateEnd=validated_data['DateEnd'],
+                price=price,
+                total=total
+            )
+            if validated_data['idStatus'] == 3:
+                room = Room.objects.get(idRoom=validated_data['idRoom'])
+                room.available = False
+                room.dateAvailable = validated_data['DateEnd'] + timedelta(hours=5)
+                room.save()
+            serializer = CommandeRoomSerializer(commande)
+        return api_response(data=serializer.data, message="Commande created successfully", success=True, status_code=200)
+    else:
+        return api_response(data=None, message=dto.errors, success=False, status_code=400)
+
+
+@extend_schema(
+    request=CreateCommandeDTO,
+    responses={
+        200: OpenApiResponse(description="Commande before create"),
+        400: OpenApiResponse(description="Invalid data")
+    },
+    description="Simulate a commande",
+    summary="Simulate a commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def simulate_commande(request):
+    data = request.data
+    dto = CreateCommandeDTO(data=data)
+    if dto.is_valid():
+        validated_data = dto.validated_data
+        idAdmin = request.idUser
+        with transaction.atomic():
+            price = Room.objects.get(idRoom=validated_data['idRoom']).price
+            total = price * (validated_data['DateEnd'] - validated_data['DateStart']).days
+            commande = {
+                "idRoom_id" : validated_data['idRoom'],
+                "idClient_id" : validated_data['idClient'],
+                "idAdmin_id" : idAdmin,
+                "idStatus_id" : validated_data['idStatus'],
+                "DateStart" : validated_data['DateStart'],
+                "DateEnd" : validated_data['DateEnd'],
+                "price" : price,
+                "total" : total
+            }
+        return api_response(data=commande, message="Commande before create", success=True, status_code=200)
+    else:
+        return api_response(data=None, message=dto.errors, success=False, status_code=400)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande confirmed successfully"),
+        404: OpenApiResponse(description="Commande not found"),
+    },
+    description="Confirm a commande by ID",
+    summary="Confirm commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def confirmeCommande(request, idCommande):
+    try:
+        commande = CommandeRoom.objects.get(idCommande=idCommande)
+        if commande.idStatus_id == 3:
+            return api_response(data=None, message="Commande already confirmed", success=False, status_code=400)
+        commande.idStatus_id = 3
+        commande.save()
+        room = Room.objects.get(idRoom=commande.idRoom_id)
+        room.available = False
+        room.dateAvailable = commande.DateEnd + timedelta(hours=5)
+        room.save()
+        serializer = CommandeRoomSerializer(commande)
+        return api_response(data=serializer.data, message="Commande confirmed successfully", success=True, status_code=200)
+    except CommandeRoom.DoesNotExist:
+        return api_response(data=None, message="Commande not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All commandes"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all commandes with paginate data",
+    summary="Get all commandes",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_commande(request):
+    try:
+        commande = CommandeRoom.objects.all()
+
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        paginator = Paginator(commande, limit)
+        try:
+            commande_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_paginated = []
+
+        serializer = CommandeRoomSerializer(commande_paginated, many=True)
+        data_paginated = {
+            'commande': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_paginated.number,
+                'limit': limit
+            }
+        }
+        return api_response(data=data_paginated, message="All rooms", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande retrieved successfully"),
+        404: OpenApiResponse(description="Commande not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get a commande by ID",
+    summary="Get commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_commande_by_id(request, idCommande):
+    try:
+        commande = CommandeRoom.objects.get(idCommande=idCommande)
+        serializer = CommandeRoomSerializer(commande)
+        return api_response(data=serializer.data, message="Commande retrieved successfully", success=True, status_code=200)
+    except CommandeRoom.DoesNotExist:
+        return api_response(data=None, message="Commande not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
 
 @extend_schema(
     request=CreateRoomDTO,
@@ -74,6 +304,12 @@ def create(request):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -112,6 +348,12 @@ def createimage(request, idRoom):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idImage',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -183,6 +425,7 @@ def upload(request):
 def all(request):
     try:
         rooms = Room.objects.all().select_related('idAdmin')
+
         page = request.GET.get('page', 1)
         limit = request.GET.get('limit', 10)
         paginator = Paginator(rooms, limit)
@@ -270,6 +513,12 @@ def imageall(request):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -302,6 +551,12 @@ def image_room(request, idRoom):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -440,6 +695,12 @@ def search_room(request):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -473,6 +734,45 @@ def update_by_admin(request, idRoom):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="Room freed successfully"),
+        404: OpenApiResponse(description="Room not found")
+    },
+    description="Free a room by ID",
+    summary="Free room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def free_room(request, idRoom):
+    try:
+        room = Room.objects.get(idRoom=idRoom)
+        room.available = True
+        room.dateAvailable = None
+        room.save()
+        return api_response(data=None, message="Room freed successfully", success=True, status_code=200)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="Room deleted successfully"),
         404: OpenApiResponse(description="Room not found")
     },
@@ -484,6 +784,12 @@ def update_by_admin(request, idRoom):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -519,6 +825,12 @@ def delete_by_admin(request, idRoom):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )

@@ -1,8 +1,13 @@
 from django.urls import path
-from .views import all, get_room, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
+from .views import all, get_room, commande, get_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
 
 urlpatterns = [
     path('all', all, name='all'),
+    path('commande/create', commande, name='commande'),
+    path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
+    path('commande/simulate', simulate_commande, name='simulate_commande'),
+    path('commande/all', get_commande, name='get_commande'),
+    path('commande/get/<int:idCommande>', get_commande_by_id, name='get_commande_by_id'),
     path('create', create, name='create'),
     path('upload', upload, name='upload'),
     path('search', search_room, name='search_room'),
@@ -13,6 +18,7 @@ urlpatterns = [
     path('deleteimage/<int:idImage>', delete_image, name='delete_image'),
     path('get/<int:idRoom>', get_room, name='getRoom'),
     path('update/<int:idRoom>', update_by_admin, name='update'),
+    path('free/<int:idRoom>', free_room, name='free_room'),
     path('delete/<int:idRoom>', delete_by_admin, name='delete'),
     path('recover/<int:idRoom>', recover_by_admin, name='recover'),
 ]

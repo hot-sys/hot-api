@@ -153,6 +153,12 @@ def update_current_user(request):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idUser',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -199,6 +205,12 @@ def update_admin_user(request, idUser):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idUser',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -240,6 +252,12 @@ def update_poste(request, idUser):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idUser',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -274,6 +292,12 @@ def delete_user(request, idUser):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idUser',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
@@ -465,6 +489,12 @@ def get_all_roles(request):
             required=True,
             type=str,
             location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRole',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
         )
     ]
 )
