@@ -12,6 +12,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from datetime import datetime, timedelta
 from utils.services.supabase_room_service import upload_images, remove_file
+from django.db.models import Q
 
 @extend_schema(
     request=CreateRoomDTO,
@@ -127,7 +128,6 @@ def delete_image(request, idImage):
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
-
 @extend_schema(
     request=MultiPartParser,
     responses={200: OpenApiResponse(description="Images uploaded successfully")},
@@ -194,6 +194,7 @@ def all(request):
         data_paginated = {
             'rooms': serializer.data,
             'paginations': {
+                'document': len(serializer.data),
                 'total_pages': paginator.num_pages,
                 'current_page': rooms_paginated.number,
                 'limit': limit
@@ -251,7 +252,6 @@ def imageall(request):
         return api_response(data=serializer.data, message="All images", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
-
 
 @extend_schema(
     responses={
@@ -315,6 +315,113 @@ def get_room(request, idRoom):
         return api_response(data=None, message="Room not found", success=False, status_code=404)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Room updated successfully"),
+        404: OpenApiResponse(description="Room not found")
+    },
+    description="Get room with available true",
+    summary="Get room available",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def room_available(request):
+    try:
+        rooms = Room.objects.filter(available=True)
+
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        paginator = Paginator(rooms, limit)
+
+        try:
+            rooms_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            rooms_paginated = paginator.page(1)
+        except EmptyPage:
+            rooms_paginated = []
+
+        serializer = RoomResponseSerializer(rooms_paginated, many=True)
+        data_paginated = {
+            'rooms': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': rooms_paginated.number,
+                'limit': limit
+            }
+        }
+        return api_response(data=data_paginated, message="Rooms available retrieved successfully", success=True, status_code=200)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
+
+@extend_schema(
+    request="query",
+    responses={
+        200: OpenApiResponse(description="Rooms retrieved successfully"),
+        400: OpenApiResponse(description="Query is required")
+    },
+    description="Search rooms by query",
+    summary="Search rooms",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def search_room(request):
+    data = request.data
+    if 'query' in data:
+        query = data['query']
+
+        rooms = Room.objects.filter(
+            Q(title__icontains=query) |
+            Q(subTitle__icontains=query) |
+            Q(description__icontains=query) |
+            Q(price__icontains=query)
+        )
+
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        paginator = Paginator(rooms, limit)
+
+        try:
+            rooms_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            rooms_paginated = paginator.page(1)
+        except EmptyPage:
+            rooms_paginated = []
+
+        serializer = RoomResponseSerializer(rooms_paginated, many=True)
+        data_paginated = {
+            'rooms': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': rooms_paginated.number,
+                'limit': limit
+            }
+        }
+        return api_response(data=data_paginated, message="Rooms search retrieved successfully", success=True, status_code=200)
+    else:
+        return api_response(data=None, message="Query is required", success=False, status_code=400)
 
 @extend_schema(
     request=UpdateRoomDTO,
