@@ -1,0 +1,9 @@
+Create account and organization in supabase : supabase.com
+
+Save Api and url
+
+Create bucket : public or private
+
+Django
+
+pip install supabase

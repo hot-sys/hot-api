@@ -90,6 +90,7 @@ six==1.16.0
 sqlparse==0.2.4
 stack-data==0.6.3
 stevedore==5.2.0
+supabase==2.10.0
 termcolor==2.4.0
 threadpoolctl==3.4.0
 tornado==6.4

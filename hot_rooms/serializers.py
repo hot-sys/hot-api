@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room
+from .models import Room, RoomImage
 from hot_users.models import User
 from hot_users.serializers import UserSerializerResponse
 from utils.api_response import api_response
@@ -17,6 +17,11 @@ class RoomResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
         fields = 'idRoom', 'idAdmin', 'title', 'subTitle', 'description', 'price', 'available', 'dateAvailable', 'info', 'createdAt', 'updatedAt'
+
+class RoomImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoomImage
+        fields = ('idImage', 'idRoom', 'image', 'uploaded_at')
 
 class CreateRoomDTO(serializers.Serializer):
     title = serializers.CharField(max_length=255, required=True)

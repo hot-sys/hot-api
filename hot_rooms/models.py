@@ -31,6 +31,15 @@ class Room(models.Model):
     def __str__(self):
         return self.title
 
+class RoomImage(models.Model):
+    idImage = models.AutoField(primary_key=True)
+    idRoom = models.ForeignKey(Room, related_name='images', on_delete=models.CASCADE)
+    image = models.URLField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image {self.idImage} for Room {self.idRoom.title}"
+
 class CommandeRoom(models.Model):
     idCommande = models.AutoField(primary_key=True)
     idRoom = models.ForeignKey(Room, on_delete=models.CASCADE)

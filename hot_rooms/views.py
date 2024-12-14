@@ -1,15 +1,17 @@
-from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.decorators import api_view, authentication_classes, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from utils.token_required import token_required
 from utils.api_response import api_response
 from rest_framework.authentication import TokenAuthentication
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from .models import Room
-from .serializers import RoomSerializer, RoomResponseSerializer, CreateRoomDTO, UpdateRoomDTO
+from .models import Room, RoomImage
+from .serializers import RoomSerializer, RoomImageSerializer, RoomResponseSerializer, CreateRoomDTO, UpdateRoomDTO
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from datetime import datetime, timedelta
+from utils.services.supabase_room_service import upload_images, remove_file
 
 @extend_schema(
     request=CreateRoomDTO,
@@ -54,6 +56,109 @@ def create(request):
         return api_response(message=str(e), success=False, status_code=500)
 
 @extend_schema(
+    request=MultiPartParser,
+    responses={
+        200: OpenApiResponse(description="Images uploaded successfully"),
+        404: OpenApiResponse(description="Room not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Upload images for a room",
+    summary="Upload images",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+@parser_classes([MultiPartParser, FormParser])
+def createimage(request, idRoom):
+    try:
+        room = Room.objects.get(idRoom=idRoom)
+        files = request.FILES.getlist('images')
+        if not files:
+            return api_response(data=None, message="No images uploaded", success=False, status_code=400)
+        urls = upload_images(files)
+        for url in urls:
+            RoomImage.objects.create(idRoom=room, image=url)
+        return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Image deleted successfully"),
+        404: OpenApiResponse(description="Image not found"),
+        500: OpenApiResponse(description="Internal server error"),
+    },
+    description="Delete an image by ID",
+    summary="Delete image",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['DELETE'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def delete_image(request, idImage):
+    try:
+        image = RoomImage.objects.get(idImage=idImage)
+        result = remove_file(image.image)
+        image.delete()
+        return api_response(data=result, message="Image deleted successfully", success=True, status_code=200)
+    except RoomImage.DoesNotExist:
+        return api_response(data=None, message="Image not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+
+@extend_schema(
+    request=MultiPartParser,
+    responses={200: OpenApiResponse(description="Images uploaded successfully")},
+    description="Upload images for a room",
+    summary="Upload images",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+@parser_classes([MultiPartParser, FormParser])
+def upload(request):
+    try:
+        files = request.FILES.getlist('images')
+        if not files:
+            return api_response(data=None, message="No images uploaded", success=False, status_code=400)
+        urls = upload_images(files)
+        return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
     responses={
         200: OpenApiResponse(description="All rooms")
     },
@@ -95,6 +200,89 @@ def all(request):
             }
         }
         return api_response(data=data_paginated, message="All rooms", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All images"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all images",
+    summary="Get images",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def imageall(request):
+    try:
+        imageRoom = RoomImage.objects.all()
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        paginator = Paginator(imageRoom, limit)
+
+        try:
+            imageRoom_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            imageRoom_paginated = paginator.page(1)
+        except EmptyPage:
+            imageRoom_paginated = []
+
+        serializer = RoomImageSerializer(imageRoom, many=True)
+        data_paginated = {
+            'images': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': imageRoom_paginated.number,
+                'limit': limit
+            }
+        }
+        return api_response(data=serializer.data, message="All images", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All images for an image"),
+        404: OpenApiResponse(description="Room not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all images for a room",
+    summary="Get images for a room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def image_room(request, idRoom):
+    try:
+        try:
+            room = Room.objects.get(idRoom=idRoom)
+        except Room.DoesNotExist:
+            return api_response(data=None, message="Room not found", success=False, status_code=404)
+        imageRoom = RoomImage.objects.filter(idRoom=idRoom)
+        serializer = RoomImageSerializer(imageRoom, many=True)
+        return api_response(data=serializer.data, message="All images for an image", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
