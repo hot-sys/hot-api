@@ -6,15 +6,16 @@ from hot_services.models import CommandeService
 class typeHistorique(models.Model):
     idType = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
+    # 1: Commande Room, 2: Commande Service, 3: Room, 4: Service, 5: Client, 6: Admin
 
     def __str__(self):
         return self.name
 
 class Historique(models.Model):
     idHistorique = models.AutoField(primary_key=True)
-    idUser = models.ForeignKey(User, on_delete=models.CASCADE)
+    idAdmin = models.ForeignKey(User, on_delete=models.CASCADE)
     idType = models.ForeignKey(typeHistorique, on_delete=models.CASCADE)
-    idCommande = models.ForeignKey(CommandeRoom, on_delete=models.SET_NULL, null=True, blank=True)
+    idCommandeRoom = models.ForeignKey(CommandeRoom, on_delete=models.SET_NULL, null=True, blank=True)
     idCommandeService = models.ForeignKey(CommandeService, on_delete=models.SET_NULL, null=True, blank=True)
     description = models.TextField(blank=True, null=True)
     createdAt = models.DateTimeField(auto_now_add=True)

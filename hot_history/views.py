@@ -1,3 +1,209 @@
-from django.shortcuts import render
 
-# Create your views here.
+from rest_framework.decorators import api_view, authentication_classes, parser_classes
+from utils.token_required import token_required
+from utils.api_response import api_response
+from rest_framework.authentication import TokenAuthentication
+from hot_users.decorators.checkUser import checkUser
+from hot_users.decorators.checkAdmin import checkAdmin
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from .models import typeHistorique, Historique
+from .serializers import typeHistoriqueSerializer, HistoriqueSerializer, CreateHistoriqueDTO
+from django.db import transaction
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from datetime import datetime, timedelta
+
+
+def create_history(idAdmin, idType, idCommande, description):
+    try:
+        typeStory = typeHistorique.objects.get(idType=idType)
+        if typeStory.idType == 1:
+            Historique.objects.create(
+                idAdmin=idAdmin,
+                idType=typeStory,
+                idCommandeRoom=idCommande,
+                description=description
+            )
+        elif typeStory.idType == 2:
+            Historique.objects.create(
+                idAdmin=idAdmin,
+                idType=typeStory,
+                idCommandeService=idCommande,
+                description=description
+            )
+        return True
+    except typeHistorique.DoesNotExist:
+        return False
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="History list"),
+        500: OpenApiResponse(description="Internal server error"),
+    },
+    description="Get all history transaction",
+    summary="Get all history transaction",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_all_history(request):
+    try:
+        history = Historique.objects.all()
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        paginator = Paginator(history, limit)
+        try:
+            history_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            history_paginated = paginator.page(1)
+        except EmptyPage:
+            history_paginated = []
+        serializer = HistoriqueSerializer(history_paginated, many=True)
+        data_paginated = {
+            'history': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': history_paginated.number,
+                'limit': limit
+            }
+        }
+        return api_response(data=data_paginated, message="History list", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    request=typeHistoriqueSerializer,
+    responses={
+        200: OpenApiResponse(description="Type created"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Create a type for history transaction",
+    summary="Create type",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def create(request):
+    try:
+        data = request.data
+        serializer = typeHistoriqueSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(message="Type created", success=True, status_code=201)
+        return api_response(message=serializer.errors, success=False, status_code=400)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Type updated"),
+        404: OpenApiResponse(description="Type not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Update a type for admin",
+    summary="Update type",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def update(request, idType):
+    try:
+        typeStory = typeHistorique.objects.get(idType=idType)
+        data = request.data
+        serializer = typeHistoriqueSerializer(typeStory, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data= serializer.data,message="Type updated", success=True, status_code=200)
+        return api_response(message=serializer.errors, success=False, status_code=400)
+    except typeHistorique.DoesNotExist:
+        return api_response(message="Type not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Type list"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all type",
+    summary="Get all type",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_all(request):
+    try:
+        status = typeHistorique.objects.all()
+        serializer = typeHistoriqueSerializer(status, many=True)
+        return api_response(data=serializer.data, message="Type list", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Type list"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get type by Id",
+    summary="Get type by Id",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_by_id(request, idType):
+    try:
+        status = typeHistorique.objects.get(idType=idType)
+        serializer = typeHistoriqueSerializer(status)
+        return api_response(data=serializer.data, message="Type found", success=True, status_code=200)
+    except typeHistorique.DoesNotExist:
+        return api_response(message="Type not found", success=False, status_code=404)

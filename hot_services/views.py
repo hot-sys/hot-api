@@ -48,11 +48,11 @@ def create(request):
 
 @extend_schema(
     responses={
-        200: OpenApiResponse(description="Status deleted"),
+        200: OpenApiResponse(description="Status updated"),
         500: OpenApiResponse(description="Internal server error")
     },
-    description="Delete a status for admin",
-    summary="Delete status",
+    description="Update a status for admin",
+    summary="Update status",
     parameters=[
         OpenApiParameter(
             name='Authorization',
@@ -74,7 +74,7 @@ def update(request, idStatus):
         serializer = StatusSerializer(status, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return api_response(message="Status updated", success=True, status_code=200)
+            return api_response(data= serializer.data, message="Status updated", success=True, status_code=200)
         return api_response(message=serializer.errors, success=False, status_code=400)
     except Status.DoesNotExist:
         return api_response(message="Status not found", success=False, status_code=404)

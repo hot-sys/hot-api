@@ -1,10 +1,12 @@
-from rest_framework.decorators import api_view, authentication_classes, parser_classes
+from rest_framework.decorators import api_view, authentication_classes, parser_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.token_required import token_required
 from utils.api_response import api_response
 from rest_framework.authentication import TokenAuthentication
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
+from hot_users.models import User
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from .models import Room, RoomImage, CommandeRoom
 from .serializers import CommandeRoomSerializer, RoomSerializer, RoomImageSerializer, RoomResponseSerializer, CreateRoomDTO, UpdateRoomDTO, CreateCommandeDTO
@@ -13,7 +15,12 @@ from django.db import transaction
 from datetime import datetime, timedelta
 from utils.services.supabase_room_service import upload_images, remove_file
 from django.db.models import Q
+from hot_history.views import create_history
 
+
+# COMMAND API
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 @extend_schema(
     request=CreateCommandeDTO,
     responses={
@@ -60,11 +67,62 @@ def commande(request):
                 room.available = False
                 room.dateAvailable = validated_data['DateEnd'] + timedelta(hours=5)
                 room.save()
+            try:
+                admin = User.objects.get(idUser=idAdmin)
+                create_history(admin, 1, commande, "Commande created")
+            except User.DoesNotExist:
+                return api_response(data=None, message="Admin not found", success=False, status_code=404)
             serializer = CommandeRoomSerializer(commande)
         return api_response(data=serializer.data, message="Commande created successfully", success=True, status_code=200)
     else:
         return api_response(data=None, message=dto.errors, success=False, status_code=400)
 
+@extend_schema(
+    request=CreateCommandeDTO,
+    responses={
+        200: OpenApiResponse(description="Commande reserved successfully"),
+        400: OpenApiResponse(description="Invalid data")
+    },
+    description="Create a commande with status reserved",
+    summary="Create a commande with status reserved",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def reserved(request):
+    try:
+        data = request.data
+        dto = CreateCommandeDTO(data=data)
+        idUser = request.idUser
+        if dto.is_valid():
+            validated_data = dto.validated_data
+            with transaction.atomic():
+                price = Room.objects.get(idRoom=validated_data['idRoom']).price
+                total = price * (validated_data['DateEnd'] - validated_data['DateStart']).days
+                commande = CommandeRoom.objects.create(
+                    idRoom_id=validated_data['idRoom'],
+                    idClient_id=idUser,
+                    idStatus_id=1,
+                    DateStart=validated_data['DateStart'],
+                    DateEnd=validated_data['DateEnd'],
+                    price=price,
+                    total=total
+                )
+                serializer = CommandeRoomSerializer(commande)
+            return api_response(data=serializer.data, message="Commande reserved successfully", success=True, status_code=200)
+        else:
+            return api_response(data=None, message=dto.errors, success=False, status_code=400)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
 
 @extend_schema(
     request=CreateCommandeDTO,
@@ -150,6 +208,12 @@ def confirmeCommande(request, idCommande):
         room.dateAvailable = commande.DateEnd + timedelta(hours=5)
         room.save()
         serializer = CommandeRoomSerializer(commande)
+        try:
+            idAdmin = request.idUser
+            admin = User.objects.get(idUser=idAdmin)
+            create_history(admin, 1, commande, "Commande confirmed")
+        except User.DoesNotExist:
+            return api_response(data=None, message="Admin not found", success=False, status_code=404)
         return api_response(data=serializer.data, message="Commande confirmed successfully", success=True, status_code=200)
     except CommandeRoom.DoesNotExist:
         return api_response(data=None, message="Commande not found", success=False, status_code=404)
@@ -181,8 +245,8 @@ def get_commande(request):
     try:
         commande = CommandeRoom.objects.all()
 
-        page = request.GET.get('page', 1)
-        limit = request.GET.get('limit', 10)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)
@@ -204,7 +268,6 @@ def get_commande(request):
         return api_response(data=data_paginated, message="All rooms", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
-
 
 @extend_schema(
     responses={
@@ -244,6 +307,62 @@ def get_commande_by_id(request, idCommande):
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
+
+@extend_schema(
+    request="query",
+    responses={
+        200: OpenApiResponse(description="Commande filtered successfully"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Filter commandes by parameters",
+    summary="Filter commandes",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def filter_commande(request):
+    try:
+        filter_params = request.data.get('filters', {})
+        commande_queryset = CommandeRoom.objects.filter(**filter_params)
+
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        paginator = Paginator(commande_queryset, limit)
+        try:
+            commande_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_paginated = []
+
+        serializer = CommandeRoomSerializer(commande_paginated, many=True)
+        data_paginated = {
+            'commande filter': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_paginated.number,
+                'limit': limit
+            }
+        }
+
+        return api_response(data=data_paginated, message="Commande retrieved successfully", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+# ROOM API
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 @extend_schema(
     request=CreateRoomDTO,
     responses={
@@ -426,8 +545,8 @@ def all(request):
     try:
         rooms = Room.objects.all().select_related('idAdmin')
 
-        page = request.GET.get('page', 1)
-        limit = request.GET.get('limit', 10)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(rooms, limit)
         try:
             rooms_paginated = paginator.page(page)
@@ -474,8 +593,8 @@ def all(request):
 def imageall(request):
     try:
         imageRoom = RoomImage.objects.all()
-        page = request.GET.get('page', 1)
-        limit = request.GET.get('limit', 10)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(imageRoom, limit)
 
         try:
@@ -598,8 +717,8 @@ def room_available(request):
     try:
         rooms = Room.objects.filter(available=True)
 
-        page = request.GET.get('page', 1)
-        limit = request.GET.get('limit', 10)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(rooms, limit)
 
         try:
@@ -656,8 +775,8 @@ def search_room(request):
             Q(price__icontains=query)
         )
 
-        page = request.GET.get('page', 1)
-        limit = request.GET.get('limit', 10)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(rooms, limit)
 
         try:

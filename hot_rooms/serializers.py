@@ -36,8 +36,8 @@ class CommandeRoomSerializer(serializers.ModelSerializer):
 
 class CreateCommandeDTO(serializers.Serializer):
     idRoom = serializers.IntegerField(required=True)
-    idClient = serializers.IntegerField(required=True)
-    idStatus = serializers.IntegerField(required=True)
+    idClient = serializers.IntegerField(required=False)
+    idStatus = serializers.IntegerField(required=False)
     DateStart = serializers.DateTimeField(required=True)
     DateEnd = serializers.DateTimeField(required=True)
 
@@ -76,7 +76,7 @@ class CreateCommandeDTO(serializers.Serializer):
             raise serializers.ValidationError("Room already booked for this period")
         if CommandeRoom.objects.filter(idRoom=idRoom, DateStart__gte=start, DateEnd__lte=end).exists():
             raise serializers.ValidationError("Room already booked for this period")
-    
+
 class CreateRoomDTO(serializers.Serializer):
     title = serializers.CharField(max_length=255, required=True)
     subTitle = serializers.CharField(max_length=255, required=False)
