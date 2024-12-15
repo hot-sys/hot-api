@@ -33,6 +33,7 @@ class Service(models.Model):
 
 class ServiceItem(models.Model):
     idItem = models.AutoField(primary_key=True)
+    idUser = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     idService = models.ForeignKey(Service, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     subTitle = models.CharField(max_length=255, blank=True, null=True)
@@ -43,6 +44,8 @@ class ServiceItem(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
 
+    objects = SoftDeleteManager()
+    all_objects = AllManager()
     def __str__(self):
         return self.title
 
