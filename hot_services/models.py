@@ -2,6 +2,14 @@ from django.db import models
 from hot_users.models import User
 from hot_clients.models import Client
 
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deletedAt=None)
+
+class AllManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset()
+
 class Status(models.Model):
     idStatus = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
@@ -18,6 +26,8 @@ class Service(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
 
+    objects = SoftDeleteManager()
+    all_objects = AllManager()
     def __str__(self):
         return self.name
 
