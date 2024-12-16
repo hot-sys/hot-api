@@ -56,6 +56,7 @@ class CommandeService(models.Model):
     idStatus = models.ForeignKey(Status, on_delete=models.CASCADE)
     idAdmin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     number = models.IntegerField()
+    total = models.IntegerField(default=0)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)

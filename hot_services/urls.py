@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import create_status, get_all_status, create_item_service, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
+from .views import create_status, get_all_status, confirmeCommande, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
 
 urlpatterns = [
     path('create', create_service, name='create_service'),
@@ -8,6 +8,12 @@ urlpatterns = [
     path('update/<int:idService>', update_service, name='update_service'),
     path('delete/<int:idService>', delete_service, name='delete_service'),
     path('recover/<int:idService>', recover_service, name='recover_service'),
+    path('commande/create', create_commande, name='create_commande'),
+    path('commande/filter', filter_commande, name='filter_commande'),
+    path('commande/simulate', simulate, name='simulate'),
+    path('commande/all', get_all_commande, name='get_all_commande'),
+    path('commande/get/<int:idCommande>', get_commande_item, name='get_commande_item'),
+    path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
     path('item/create/<int:idService>', create_item_service, name='create_item_service'),
     path('item/delete/<int:idItem>', delete_item_service, name='delete_item_service'),
     path('item/recover/<int:idItem>', recover_item_service, name='recover_item_service'),

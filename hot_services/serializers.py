@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import Status, Service, ServiceItem
+from .models import Status, Service, ServiceItem, CommandeService
+from hot_clients.models import Client
+from hot_users.models import User
+from hot_clients.serializers import ClientSerializer
+from hot_users.serializers import UserSerializerResponse
 
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,6 +30,15 @@ class StatusSerializer(serializers.ModelSerializer):
         if Status.objects.filter(name=value).exists():
             raise serializers.ValidationError("Status already exists")
         return value
+
+class CommandeServiceSerializer(serializers.ModelSerializer):
+    idItem = ServiceItemSerializer()
+    idClient = ClientSerializer()
+    idStatus = StatusSerializer()
+    idAdmin = UserSerializerResponse()
+    class Meta:
+        model = CommandeService
+        fields = 'idItem', 'idClient', 'idStatus', 'idAdmin', 'number', 'total', 'createdAt'
 
 class CreateServiceDTO(serializers.Serializer):
     name = serializers.CharField(max_length=100)
@@ -68,4 +81,30 @@ class UpdateServiceItemDTO(serializers.Serializer):
     def validate_title(self, value):
         if ServiceItem.objects.filter(title=value).exists():
             raise serializers.ValidationError("Service item already exists")
+        return value
+
+class CreateCommandeServiceDTO(serializers.Serializer):
+    idItem = serializers.IntegerField(required=True)
+    idClient = serializers.IntegerField(required=True)
+    idStatus = serializers.IntegerField(required=True)
+    number = serializers.IntegerField(required=True)
+
+    def validate_idItem(self, value):
+        if not ServiceItem.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("Service item does not exist")
+        return value
+
+    def validate_idClient(self, value):
+        if not Client.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("Client does not exist")
+        return value
+
+    def validate_idStatus(self, value):
+        if not Status.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("Status does not exist")
+        return value
+
+    def validate_idAdmin(self, value):
+        if value is not None and not User.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("Admin does not exist")
         return value
