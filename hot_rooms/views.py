@@ -620,7 +620,7 @@ def imageall(request):
 
 @extend_schema(
     responses={
-        200: OpenApiResponse(description="All images for an image"),
+        200: OpenApiResponse(description="All images for an room"),
         404: OpenApiResponse(description="Room not found"),
         500: OpenApiResponse(description="Internal server error")
     },
@@ -653,7 +653,7 @@ def image_room(request, idRoom):
             return api_response(data=None, message="Room not found", success=False, status_code=404)
         imageRoom = RoomImage.objects.filter(idRoom=idRoom)
         serializer = RoomImageSerializer(imageRoom, many=True)
-        return api_response(data=serializer.data, message="All images for an image", success=True, status_code=200)
+        return api_response(data=serializer.data, message="All images for an room", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 

@@ -7,12 +7,14 @@ from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import Status, Service, ServiceItem, CommandeService
+from .models import Status, Service, ServiceItem, CommandeService, ItemImage
 from hot_users.models import User
-from .serializers import StatusSerializer, ServiceSerializer, ServiceItemSerializer, CommandeServiceSerializer, CreateCommandeServiceDTO, CreateServiceDTO, CreateServiceItemDTO, UpdateServiceItemDTO
+from .serializers import StatusSerializer, ServiceSerializer, ServiceItemSerializer, ItemImageSerializer, CommandeServiceSerializer, CreateCommandeServiceDTO, CreateServiceDTO, CreateServiceItemDTO, UpdateServiceItemDTO
 from django.db import transaction
 from datetime import datetime, timedelta
 from hot_history.views import create_history
+from rest_framework.parsers import MultiPartParser, FormParser
+from utils.services.supabase_item_service import upload_images, remove_file
 
 # COMMANDE SERVICE ITEMS API
 # --------------------------------------------------------------------------------
@@ -363,6 +365,131 @@ def create_item_service(request, idService):
             return api_response(message=dto.errors, success=False)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
+
+
+@extend_schema(
+    request=MultiPartParser,
+    responses={
+        200: OpenApiResponse(description="Images uploaded successfully"),
+        404: OpenApiResponse(description="Item not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Upload images for a Item",
+    summary="Upload images",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idItem',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+@parser_classes([MultiPartParser, FormParser])
+def create_image_item_service(request, idItem):
+    try:
+        item = ServiceItem.objects.get(idItem=idItem)
+        files = request.FILES.getlist('images')
+        if not files:
+            return api_response(data=None, message="No images uploaded", success=False, status_code=400)
+        urls = upload_images(files)
+        for url in urls:
+            ItemImage.objects.create(idItem=item, image=url)
+        return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
+    except ServiceItem.DoesNotExist:
+        return api_response(data=None, message="Item not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Image deleted successfully"),
+        404: OpenApiResponse(description="Image not found"),
+        500: OpenApiResponse(description="Internal server error"),
+    },
+    description="Delete an image by ID",
+    summary="Delete image",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idImage',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['DELETE'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def delete_image_item_service(request, idImage):
+    try:
+        image = ItemImage.objects.get(idImage=idImage)
+        result = remove_file(image.image)
+        image.delete()
+        return api_response(data=result, message="Image deleted successfully", success=True, status_code=200)
+    except ItemImage.DoesNotExist:
+        return api_response(data=None, message="Image not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All images for an item"),
+        404: OpenApiResponse(description="Item not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all images for an item",
+    summary="Get images for an Item",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idItem',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_image_item_service(request, idItem):
+    try:
+        try:
+            item = ServiceItem.objects.get(idItem=idItem)
+        except ServiceItem.DoesNotExist:
+            return api_response(data=None, message="Room not found", success=False, status_code=404)
+        imageItem = ItemImage.objects.filter(idItem=idItem)
+        serializer = ItemImageSerializer(imageItem, many=True)
+        return api_response(data=serializer.data, message="All images for an item", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
 
 @extend_schema(
     responses={

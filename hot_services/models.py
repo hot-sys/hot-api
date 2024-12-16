@@ -49,6 +49,15 @@ class ServiceItem(models.Model):
     def __str__(self):
         return self.title
 
+class ItemImage(models.Model):
+    idImage = models.AutoField(primary_key=True)
+    idItem = models.ForeignKey(ServiceItem, related_name='images', on_delete=models.CASCADE)
+    image = models.URLField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image {self.idImage} for item {self.idItem.title}"
+
 class CommandeService(models.Model):
     idCommande = models.AutoField(primary_key=True)
     idItem = models.ForeignKey(ServiceItem, on_delete=models.CASCADE)

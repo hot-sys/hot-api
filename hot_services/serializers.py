@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Status, Service, ServiceItem, CommandeService
+from .models import Status, Service, ServiceItem, CommandeService, ItemImage
 from hot_clients.models import Client
 from hot_users.models import User
 from hot_clients.serializers import ClientSerializer
@@ -39,6 +39,11 @@ class CommandeServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommandeService
         fields = 'idItem', 'idClient', 'idStatus', 'idAdmin', 'number', 'total', 'createdAt'
+
+class ItemImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemImage
+        fields = '__all__'
 
 class CreateServiceDTO(serializers.Serializer):
     name = serializers.CharField(max_length=100)
