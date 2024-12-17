@@ -20,6 +20,7 @@ class User(models.Model):
     idRole = models.ForeignKey(Role, on_delete=models.CASCADE)
     login = models.CharField(max_length=255, unique=True)
     password = models.CharField(max_length=255)
+    image = models.CharField(max_length=255, blank=True, null=True)
     name = models.CharField(max_length=255)
     firstname = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, blank=True, null=True)

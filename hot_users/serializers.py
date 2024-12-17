@@ -27,7 +27,7 @@ class UserSerializerResponse(serializers.ModelSerializer):
     preference = UserPreferenceSerializer(read_only=True)
     class Meta:
         model = User
-        fields = 'idUser', 'idRole', 'login', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'preference'
+        fields = 'idUser', 'idRole', 'login', 'image', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'preference'
 
 class UpdatePosteDTO(serializers.Serializer):
     idRole = serializers.IntegerField(required=True)

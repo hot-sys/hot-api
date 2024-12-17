@@ -1,6 +1,6 @@
 from django.contrib.auth.hashers import check_password, make_password
 from utils.token_required import token_required
-from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.decorators import api_view, authentication_classes, parser_classes
 from .models import User, Role
 from .serializers import UserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, UpdateUserDto, RoleDTO, UpdatePosteDTO
 from utils.api_response import api_response
@@ -11,6 +11,9 @@ from django.conf import settings
 from datetime import datetime, timedelta
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.parsers import MultiPartParser, FormParser
+from utils.services.supabase_user_service import upload_images, remove_file
+
 
 @extend_schema(
     request=LoginDTO,
@@ -94,6 +97,51 @@ def create(request):
             return api_response(data=serializer.data, message="User registered successfully")
         return api_response(data=serializer.errors, message="Invalid user data", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
+
+@extend_schema(
+    request=UpdateUserDto,
+    responses={
+        200: UserSerializerResponse,
+        400: OpenApiResponse(description='Invalid input data'),
+        404: OpenApiResponse(description='User not found')
+    },
+    description="Endpoint to update profile picture of the current logged-in user. Requires user validation.",
+    summary="Update profile picture of the current",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@parser_classes([MultiPartParser, FormParser])
+@token_required
+@checkUser
+def upload_current(request):
+    idUser = request.idUser
+    try:
+        user = User.objects.get(idUser=idUser)
+        try:
+            if user.image:
+                remove_file(user.image)
+        except Exception as e:
+            pass
+        files = request.FILES.getlist('image')
+        if not files:
+            return api_response(data=None, message="No images uploaded", success=False, status_code=400)
+        urls = upload_images(files)
+        for url in urls:
+            user.image = url
+            user.save()
+        return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
+    except User.DoesNotExist:
+        return api_response(data=None, message="User not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
 
 @extend_schema(
     request=UpdateUserDto,
@@ -188,7 +236,6 @@ def update_admin_user(request, idUser):
         except User.DoesNotExist:
             return api_response(message="User not found", success=False, status_code=404)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
-
 
 @extend_schema(
     responses={

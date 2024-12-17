@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import create, update_current_user, update_admin_user, update_poste, update_role, delete_user, recover_user, create_role, login, current_user, get_role, get_all_roles, get_all_users, get_user
+from .views import create, update_current_user, upload_current, update_admin_user, update_poste, update_role, delete_user, recover_user, create_role, login, current_user, get_role, get_all_roles, get_all_users, get_user
 
 
 urlpatterns = [
@@ -7,6 +7,7 @@ urlpatterns = [
     path('current/', current_user, name='current_user'),
     path('create/', create, name='create'),
     path('update_current/', update_current_user, name='update_current_user'),
+    path('upload_current/', upload_current, name='upload_current'),
     path('update_admin/<int:idUser>', update_admin_user, name='update_admin_user'),
     path('update_poste/<int:idUser>', update_poste, name='update_poste'),
     path('delete/<int:idUser>', delete_user, name='delete_user'),
