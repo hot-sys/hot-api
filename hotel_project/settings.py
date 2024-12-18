@@ -65,13 +65,13 @@ CORS_ALLOW_METHODS = [
 ]
 
 # FOR CACHE
+CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache')
+CACHE_LOCATION = os.getenv('CACHE_LOCATION', 'unique-snowflake')
+
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://localhost:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+        'BACKEND': CACHE_BACKEND,
+        'LOCATION': CACHE_LOCATION,
     }
 }
 
