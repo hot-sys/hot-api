@@ -74,13 +74,23 @@ CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 60))
 
 CACHES = {
     'default': {
-        'BACKEND': CACHE_BACKEND,
-        'LOCATION': CACHE_LOCATION,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'TIMEOUT': CACHE_TIMEOUT,
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://:passRediswawawawa@127.0.0.1:6379/1',
     }
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
 }
 
 # Application definition

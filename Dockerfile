@@ -17,7 +17,10 @@ RUN python -m pip install --upgrade pip \
 
 COPY . .
 
+COPY redis.conf /etc/redis/redis.conf
+
 EXPOSE 10000
 
-COPY redis.conf /etc/redis/redis.conf
-CMD ["sh", "-c", "redis-server /etc/redis/redis.conf && python manage.py migrate && python manage.py runserver 0.0.0.0:$PORT"]
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]
