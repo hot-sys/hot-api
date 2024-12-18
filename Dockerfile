@@ -19,4 +19,5 @@ COPY . .
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "redis-server && python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT:-10000}"]
+COPY redis.conf /etc/redis/redis.conf
+CMD ["sh", "-c", "redis-server /etc/redis/redis.conf && python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT:-10000}"]
