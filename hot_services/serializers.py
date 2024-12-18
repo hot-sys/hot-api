@@ -6,6 +6,7 @@ from hot_clients.serializers import ClientSerializer
 from hot_users.serializers import UserSerializerResponse
 
 class ServiceSerializer(serializers.ModelSerializer):
+    idUser = UserSerializerResponse()
     class Meta:
         model = Service
         fields = '__all__'
@@ -19,7 +20,7 @@ class ServiceItemSerializer(serializers.ModelSerializer):
     idService = ServiceSerializer()
     class Meta:
         model = ServiceItem
-        fields = 'idService', 'title', 'subTitle', 'description', 'price', 'unity', 'createdAt'
+        fields = 'idItem', 'idService', 'title', 'subTitle', 'description', 'price', 'unity', 'createdAt'
 
 class StatusSerializer(serializers.ModelSerializer):
     class Meta:

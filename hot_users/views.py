@@ -13,7 +13,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_user_service import upload_images, remove_file
-
+from django.views.decorators.cache import cache_page
 
 @extend_schema(
     request=LoginDTO,
@@ -91,7 +91,7 @@ def create(request):
     if dto.is_valid():
         validated_data = dto.validated_data
         validated_data['password'] = make_password(validated_data['password'])
-        serializer = UserSerializer(data=validated_data)
+        serializer = UserSerializerResponse(data=validated_data)
         if serializer.is_valid():
             serializer.save()
             return api_response(data=serializer.data, message="User registered successfully")
@@ -387,6 +387,7 @@ def recover_user(request, idUser):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
+@cache_page(60 * 15)
 def current_user(request):
     try:
         idUser = request.idUser
@@ -417,6 +418,7 @@ def current_user(request):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_users(request):
     try:
         users = User.objects.all()
@@ -486,6 +488,7 @@ def get_user(request, idUser):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_role(request, idRole):
     try:
         role = Role.objects.get(idRole=idRole)
@@ -515,6 +518,7 @@ def get_role(request, idRole):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_roles(request):
     try:
         roles = Role.objects.all()

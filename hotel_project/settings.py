@@ -49,6 +49,7 @@ TOKEN_KEY = os.getenv('SECRET_KEY')
 
 ALLOWED_HOSTS = ['*']
 
+# CORS CONFIG
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
     "https://hot-admin-sys.onrender.com"
@@ -62,6 +63,17 @@ CORS_ALLOW_METHODS = [
     "PATCH",
     "DELETE",
 ]
+
+# FOR CACHE
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://localhost:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
 
 # Application definition
 

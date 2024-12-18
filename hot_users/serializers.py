@@ -18,13 +18,15 @@ class UserPreferenceSerializer(serializers.ModelSerializer):
         fields = 'idPreference', 'idUser', 'theme', 'color'
 
 class UserSerializer(serializers.ModelSerializer):
-    preference = UserPreferenceSerializer(read_only=True)
+    preference = UserPreferenceSerializer()
+    idRole = RoleSerializer()
     class Meta:
         model = User
         fields = 'idUser', 'idRole', 'login', 'password', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'updatedAt', 'deletedAt', 'preference'
 
 class UserSerializerResponse(serializers.ModelSerializer):
     preference = UserPreferenceSerializer(read_only=True)
+    idRole = RoleSerializer()
     class Meta:
         model = User
         fields = 'idUser', 'idRole', 'login', 'image', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'preference'
