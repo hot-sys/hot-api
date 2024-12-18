@@ -13,4 +13,4 @@ done
 python manage.py migrate
 
 # Démarrer le serveur Django
-exec python manage.py runserver 127.0.0.1:${PORT:-8000}
+exec python manage.py runserver 0.0.0.0:${PORT:-8000}
