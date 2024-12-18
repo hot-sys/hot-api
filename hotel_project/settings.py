@@ -14,7 +14,10 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+import redis
 load_dotenv()
+
+redis_instance = redis.StrictRedis(host='localhost', port=6379, password='pass')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -65,13 +68,18 @@ CORS_ALLOW_METHODS = [
 ]
 
 # FOR CACHE
-CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache')
-CACHE_LOCATION = os.getenv('CACHE_LOCATION', 'unique-snowflake')
+CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'django_redis.cache.RedisCache')
+CACHE_LOCATION = os.getenv('CACHE_LOCATION', 'redis://localhost:6379/1')
+CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 60))
 
 CACHES = {
     'default': {
         'BACKEND': CACHE_BACKEND,
         'LOCATION': CACHE_LOCATION,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'TIMEOUT': CACHE_TIMEOUT,
     }
 }
 
