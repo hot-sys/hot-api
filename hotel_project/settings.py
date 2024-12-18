@@ -75,7 +75,7 @@ CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 60))
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://:TonMotDePasseSécurisé@127.0.0.1:6379/1',
+        'LOCATION': 'redis://:passRediswawawawa@127.0.0.1:6379/1',
     }
 }
 
