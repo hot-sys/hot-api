@@ -11,7 +11,7 @@ from .serializers import typeHistoriqueSerializer, HistoriqueSerializer, CreateH
 from django.db import transaction
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from datetime import datetime, timedelta
-
+from django.views.decorators.cache import cache_page
 
 def create_history(idAdmin, idType, idCommande, description):
     try:
@@ -55,6 +55,7 @@ def create_history(idAdmin, idType, idCommande, description):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_history(request):
     try:
         history = Historique.objects.all()
@@ -171,6 +172,7 @@ def update(request, idType):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all(request):
     try:
         status = typeHistorique.objects.all()
@@ -200,6 +202,7 @@ def get_all(request):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_by_id(request, idType):
     try:
         status = typeHistorique.objects.get(idType=idType)

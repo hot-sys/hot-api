@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from hot_history.views import create_history
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
+from django.views.decorators.cache import cache_page
 
 # COMMANDE SERVICE ITEMS API
 # --------------------------------------------------------------------------------
@@ -188,6 +189,7 @@ def confirmeCommande(request, idCommande):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_commande(request):
     try:
         commandes = CommandeService.objects.all()
@@ -244,6 +246,7 @@ def get_all_commande(request):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_commande_item(request, idCommande):
     try:
         commande = CommandeService.objects.get(idCommande=idCommande)
@@ -253,6 +256,7 @@ def get_commande_item(request, idCommande):
         return api_response(message="Commande item not found", success=False, status_code=404)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
+
 @extend_schema(
     request="query",
     responses={
@@ -478,6 +482,7 @@ def delete_image_item_service(request, idImage):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
+@cache_page(60 * 15)
 def get_image_item_service(request, idItem):
     try:
         try:
@@ -641,6 +646,7 @@ def update_item_service(request, idItem):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_service_item(request, idService):
     try:
         try:
@@ -659,7 +665,7 @@ def get_all_service_item(request, idService):
         except EmptyPage:
             item_paginated = []
 
-        serializer = ServiceItemSerializer(serviceItems, many=True)
+        serializer = ServiceItemSerializer(item_paginated, many=True)
         data_paginated = {
             'items': serializer.data,
             'paginations': {
@@ -701,11 +707,18 @@ def get_all_service_item(request, idService):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_detail_item(request, idItem):
     try:
         item = ServiceItem.objects.get(idItem=idItem)
         serializer = ServiceItemSerializer(item)
-        return api_response(data=serializer.data, message="Item found", success=True, status_code=200)
+        imageItem = ItemImage.objects.filter(idItem=idItem)
+        serializerItem = ItemImageSerializer(imageItem, many=True)
+        data = {
+            'item': serializer.data,
+            'images': serializerItem.data
+        }
+        return api_response(data=data, message="Item found", success=True, status_code=200)
     except ServiceItem.DoesNotExist:
         return api_response(message="Item not found", success=False, status_code=404)
     except Exception as e:
@@ -894,6 +907,7 @@ def recover_service(request, idService):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_service(request):
     try:
         services = Service.objects.all()
@@ -949,6 +963,7 @@ def get_all_service(request):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_by_id_service(request, idService):
     try:
         service = Service.objects.get(idService=idService)
@@ -1050,6 +1065,7 @@ def update_status(request, idStatus):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_all_status(request):
     try:
         status = Status.objects.all()
@@ -1085,6 +1101,7 @@ def get_all_status(request):
 @token_required
 @checkUser
 @checkAdmin
+@cache_page(60 * 15)
 def get_by_id_status(request, idStatus):
     try:
         status = Status.objects.get(idStatus=idStatus)

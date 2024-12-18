@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev-compat \
     libmariadb-dev \
     pkg-config \
+    redis-server \
     && apt-get clean
 
 RUN python -m pip install --upgrade pip \
@@ -18,4 +19,4 @@ COPY . .
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT:-10000}"]
+CMD ["sh", "-c", "redis-server && python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT:-10000}"]
