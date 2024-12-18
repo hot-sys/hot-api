@@ -15,7 +15,7 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 import redis
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 
 redis_instance = redis.StrictRedis(host='localhost', port=6379, password='pass')
 
@@ -55,7 +55,7 @@ ALLOWED_HOSTS = ['*']
 # CORS CONFIG
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
-    "https://hot-admin-sys.onrender.com"
+    os.getenv('API')
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -68,14 +68,13 @@ CORS_ALLOW_METHODS = [
 ]
 
 # FOR CACHE
-CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'django_redis.cache.RedisCache')
-CACHE_LOCATION = os.getenv('CACHE_LOCATION', 'redis://localhost:6379/1')
-CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 60))
+CACHE_BACKEND = os.getenv('CACHE_BACKEND')
+CACHE_LOCATION = os.getenv('CACHE_LOCATION')
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://:passRediswawawawa@127.0.0.1:6379/1',
+        'BACKEND': CACHE_BACKEND,
+        'LOCATION': CACHE_LOCATION,
     }
 }
 

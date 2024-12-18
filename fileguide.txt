@@ -7,3 +7,21 @@ Create bucket : public or private
 Django
 
 pip install supabase
+
+REDIS FOR LOCAL
+
+wsl --install
+
+sudo apt update && sudo apt upgrade
+
+sudo apt install redis-server
+
+sudo service redis-server start
+
+redis-cli ping
+
+DOCKER OPTION
+
+docker run --name redis-local -p 6379:6379 redis
+
+redis-cli ping
