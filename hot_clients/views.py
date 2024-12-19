@@ -11,7 +11,6 @@ from .serializers import ClientSerializer, CreateClientDTO, UpdateClientDTO
 from django.db import transaction
 from django.db.models import Q
 from datetime import datetime, timedelta
-from django.views.decorators.cache import cache_page
 
 @extend_schema(
     responses={
@@ -34,7 +33,6 @@ from django.views.decorators.cache import cache_page
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def all(request):
     try:
         clients = Client.objects.all()
@@ -91,7 +89,6 @@ def all(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_by_id(request, idClient):
     try:
         client = Client.objects.get(idClient=idClient)

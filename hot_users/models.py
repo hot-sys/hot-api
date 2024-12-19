@@ -1,4 +1,7 @@
 from django.db import models
+from django.db.models.signals import post_save, pre_delete
+from django.dispatch import receiver
+from django.core.cache import cache
 
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
@@ -35,6 +38,11 @@ class User(models.Model):
     objects = SoftDeleteManager()
     all_objects = AllUserManager()
 
+    def clear_cache(self):
+        """Invalidate the cache for this user."""
+        key = f"user:{self.idUser}:/current_user"
+        cache.delete(key)
+
     def __str__(self):
         return f"{self.firstname} {self.name}"
 
@@ -46,3 +54,14 @@ class UserPreference(models.Model):
 
     def __str__(self):
         return f"Preferences for {self.idUser.login}"
+
+
+@receiver(post_save, sender=User)
+def clear_user_cache_on_save(sender, instance, **kwargs):
+    """Clear cache when a user is saved."""
+    instance.clear_cache()
+
+@receiver(pre_delete, sender=User)
+def clear_user_cache_on_delete(sender, instance, **kwargs):
+    """Clear cache when a user is deleted."""
+    instance.clear_cache()

@@ -15,7 +15,8 @@ from datetime import datetime, timedelta
 from hot_history.views import create_history
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
-from django.views.decorators.cache import cache_page
+# from utils.cache_utils import cache_response
+# from django.views.decorators.cache import cache_page
 
 # COMMANDE SERVICE ITEMS API
 # --------------------------------------------------------------------------------
@@ -189,7 +190,6 @@ def confirmeCommande(request, idCommande):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_all_commande(request):
     try:
         commandes = CommandeService.objects.all()
@@ -246,7 +246,6 @@ def get_all_commande(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_commande_item(request, idCommande):
     try:
         commande = CommandeService.objects.get(idCommande=idCommande)
@@ -482,7 +481,6 @@ def delete_image_item_service(request, idImage):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@cache_page(60 * 15)
 def get_image_item_service(request, idItem):
     try:
         try:
@@ -646,7 +644,6 @@ def update_item_service(request, idItem):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_all_service_item(request, idService):
     try:
         try:
@@ -707,7 +704,6 @@ def get_all_service_item(request, idService):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_detail_item(request, idItem):
     try:
         item = ServiceItem.objects.get(idItem=idItem)
@@ -907,7 +903,8 @@ def recover_service(request, idService):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
+# @cache_page(60 * 15)
+# @cache_response(timeout=60 * 15, cache_key_func=lambda request, *args, **kwargs: f"user:{request.idUser}:{request.path}")
 def get_all_service(request):
     try:
         services = Service.objects.all()
@@ -963,7 +960,6 @@ def get_all_service(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_by_id_service(request, idService):
     try:
         service = Service.objects.get(idService=idService)
@@ -1065,7 +1061,6 @@ def update_status(request, idStatus):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_all_status(request):
     try:
         status = Status.objects.all()
@@ -1101,7 +1096,6 @@ def get_all_status(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_by_id_status(request, idStatus):
     try:
         status = Status.objects.get(idStatus=idStatus)
