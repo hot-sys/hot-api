@@ -687,7 +687,13 @@ def get_room(request, idRoom):
     try:
         room = Room.objects.get(idRoom=idRoom)
         serializer = RoomResponseSerializer(room)
-        return api_response(data=serializer.data, message="Room retrieved successfully", success=True, status_code=200)
+        imageRome = RoomImage.objects.filter(idRoom=idRoom)
+        serializerRoom = RoomImageSerializer(imageRome, many=True)
+        data = {
+            'Room': serializer.data,
+            'images': serializerRoom.data
+        }
+        return api_response(data=data, message="Room retrieved successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
     except Exception as e:

@@ -6,7 +6,7 @@ from hot_services.models import CommandeService
 class typeHistorique(models.Model):
     idType = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
-    # 1: Commande Room, 2: Commande Service, 3: Room, 4: Service, 5: Client, 6: Admin
+    # 1: Commande Room, 2: Commande Service
 
     def __str__(self):
         return self.name
