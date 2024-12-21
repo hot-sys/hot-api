@@ -48,7 +48,7 @@ def all(request):
         except EmptyPage:
             clients_paginated = []
 
-        serializer = ClientSerializer(clients, many=True)
+        serializer = ClientSerializer(clients_paginated, many=True)
         data_paginated = {
             'clients': serializer.data,
             'paginations': {
@@ -261,7 +261,7 @@ def search(request):
 
         serializer = ClientSerializer(clients_paginated, many=True)
         data_paginated = {
-            'rooms': serializer.data,
+            'clients': serializer.data,
             'paginations': {
                 'document': len(serializer.data),
                 'total_pages': paginator.num_pages,
