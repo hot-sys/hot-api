@@ -11,7 +11,6 @@ from .serializers import ClientSerializer, CreateClientDTO, UpdateClientDTO
 from django.db import transaction
 from django.db.models import Q
 from datetime import datetime, timedelta
-from django.views.decorators.cache import cache_page
 
 @extend_schema(
     responses={
@@ -34,7 +33,6 @@ from django.views.decorators.cache import cache_page
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def all(request):
     try:
         clients = Client.objects.all()
@@ -50,7 +48,7 @@ def all(request):
         except EmptyPage:
             clients_paginated = []
 
-        serializer = ClientSerializer(clients, many=True)
+        serializer = ClientSerializer(clients_paginated, many=True)
         data_paginated = {
             'clients': serializer.data,
             'paginations': {
@@ -91,7 +89,6 @@ def all(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_by_id(request, idClient):
     try:
         client = Client.objects.get(idClient=idClient)
@@ -264,7 +261,7 @@ def search(request):
 
         serializer = ClientSerializer(clients_paginated, many=True)
         data_paginated = {
-            'rooms': serializer.data,
+            'clients': serializer.data,
             'paginations': {
                 'document': len(serializer.data),
                 'total_pages': paginator.num_pages,

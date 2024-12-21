@@ -24,4 +24,7 @@ DOCKER OPTION
 
 docker run --name redis-local -p 6379:6379 redis
 
+docker stop redis-local
+docker rm redis-local
+
 redis-cli ping

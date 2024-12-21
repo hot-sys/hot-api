@@ -84,10 +84,10 @@ class UpdateServiceItemDTO(serializers.Serializer):
             raise serializers.ValidationError("Service item does not exist")
         return value
 
-    def validate_title(self, value):
-        if ServiceItem.objects.filter(title=value).exists():
-            raise serializers.ValidationError("Service item already exists")
-        return value
+    # def validate_title(self, value):
+    #     if ServiceItem.objects.filter(title=value).exists():
+    #         raise serializers.ValidationError("Service item already exists")
+    #     return value
 
 class CreateCommandeServiceDTO(serializers.Serializer):
     idItem = serializers.IntegerField(required=True)

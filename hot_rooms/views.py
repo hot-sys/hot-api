@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 from utils.services.supabase_room_service import upload_images, remove_file
 from django.db.models import Q
 from hot_history.views import create_history
-from django.views.decorators.cache import cache_page
 
 
 # COMMAND API
@@ -242,7 +241,6 @@ def confirmeCommande(request, idCommande):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_commande(request):
     try:
         commande = CommandeRoom.objects.all()
@@ -299,7 +297,6 @@ def get_commande(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def get_commande_by_id(request, idCommande):
     try:
         commande = CommandeRoom.objects.get(idCommande=idCommande)
@@ -333,7 +330,6 @@ def get_commande_by_id(request, idCommande):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def filter_commande(request):
     try:
         filter_params = request.data.get('filters', {})
@@ -545,7 +541,6 @@ def upload(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@cache_page(60 * 15)
 def all(request):
     try:
         rooms = Room.objects.all().select_related('idAdmin')
@@ -595,7 +590,6 @@ def all(request):
 @token_required
 @checkUser
 @checkAdmin
-@cache_page(60 * 15)
 def imageall(request):
     try:
         imageRoom = RoomImage.objects.all()
@@ -651,7 +645,6 @@ def imageall(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@cache_page(60 * 15)
 def image_room(request, idRoom):
     try:
         try:
@@ -690,12 +683,17 @@ def image_room(request, idRoom):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@cache_page(60 * 15)
 def get_room(request, idRoom):
     try:
         room = Room.objects.get(idRoom=idRoom)
         serializer = RoomResponseSerializer(room)
-        return api_response(data=serializer.data, message="Room retrieved successfully", success=True, status_code=200)
+        imageRome = RoomImage.objects.filter(idRoom=idRoom)
+        serializerRoom = RoomImageSerializer(imageRome, many=True)
+        data = {
+            'Room': serializer.data,
+            'images': serializerRoom.data
+        }
+        return api_response(data=data, message="Room retrieved successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
     except Exception as e:
@@ -721,7 +719,6 @@ def get_room(request, idRoom):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@cache_page(60 * 15)
 def room_available(request):
     try:
         rooms = Room.objects.filter(available=True)
