@@ -3,15 +3,26 @@ from hot_users.models import User
 from hot_clients.models import Client
 from hot_services.models import Status
 from hot_rooms.validators.price import validate_positive
+from django.utils.timezone import now
 
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(deletedAt__isnull=True)
-
+        queryset = super().get_queryset().filter(deletedAt__isnull=True)
+        for room in queryset:
+            if room.dateAvailable and room.dateAvailable <= now():
+                room.dateAvailable = None
+                room.available = True
+                room.save()
+        return queryset
 class AllRoomManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset()
-
+        queryset = super().get_queryset()
+        for room in queryset:
+            if room.dateAvailable and room.dateAvailable <= now():
+                room.dateAvailable = None
+                room.available = True
+                room.save()
+        return queryset
 class Room(models.Model):
     idRoom = models.AutoField(primary_key=True)
     idAdmin = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -28,6 +39,13 @@ class Room(models.Model):
 
     objects = SoftDeleteManager()
     all_objects = AllRoomManager()
+
+    def save(self, *args, **kwargs):
+        if self.dateAvailable and self.dateAvailable <= now():
+            self.dateAvailable = None
+            self.available = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
