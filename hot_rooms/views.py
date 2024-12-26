@@ -750,7 +750,56 @@ def get_room(request, idRoom):
 
 @extend_schema(
     responses={
-        200: OpenApiResponse(description="Room updated successfully"),
+        200: OpenApiResponse(description="Room unavailable retrieved successfully"),
+        404: OpenApiResponse(description="Room not found")
+    },
+    description="Get room with unavailable true",
+    summary="Get room unavailable",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def room_unavailable(request):
+    try:
+        rooms = Room.objects.filter(available=False)
+
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        paginator = Paginator(rooms, limit)
+
+        try:
+            rooms_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            rooms_paginated = paginator.page(1)
+        except EmptyPage:
+            rooms_paginated = []
+
+        serializer = RoomResponseSerializer(rooms_paginated, many=True)
+        data_paginated = {
+            'rooms': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': rooms_paginated.number,
+                'limit': limit
+            }
+        }
+        return api_response(data=data_paginated, message="Rooms unavailable retrieved successfully", success=True, status_code=200)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Room available retrieved successfully"),
         404: OpenApiResponse(description="Room not found")
     },
     description="Get room with available true",
