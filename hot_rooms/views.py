@@ -51,10 +51,10 @@ def commande(request):
         idAdmin = request.idUser
         with transaction.atomic():
             price = Room.objects.get(idRoom=validated_data['idRoom']).price
-            diffDay = validated_data['DateEnd'] - validated_data['DateStart']
-            if diffDay.days == 0 :
-                diffDay = 1
-            total = price * diffDay.days
+            diffDays = int((validated_data['DateEnd'] - validated_data['DateStart']).days)
+            if diffDays == 0:
+                diffDays = 1
+            total = price * diffDays
             commande = CommandeRoom.objects.create(
                 idRoom_id=validated_data['idRoom'],
                 idClient_id=validated_data['idClient'],
