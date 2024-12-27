@@ -58,15 +58,15 @@ class CreateCommandeDTO(serializers.Serializer):
             raise serializers.ValidationError("Status not found")
         return value
 
-    def validate_DateStart(self, value):
-        if value < timezone.now():
-            raise serializers.ValidationError("Date start must be greater than the current date")
-        return value
+    # def validate_DateStart(self, value):
+    #     if value <= timezone.now():
+    #         raise serializers.ValidationError("Date start must be greater than the current date")
+    #     return value
 
-    def validate_DateEnd(self, value):
-        if value < timezone.now():
-            raise serializers.ValidationError("Date end must be greater than the current date")
-        return value
+    # def validate_DateEnd(self, value):
+    #     if value < timezone.now():
+    #         raise serializers.ValidationError("Date end must be greater than the current date")
+    #     return value
 
     def check_date(self, start, end):
         if start > end:
