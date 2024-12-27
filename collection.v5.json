@@ -423,13 +423,23 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/services/all",
+									"raw": "{{base_url}}/services/all?page=1&limit=5",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"services",
 										"all"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
 									]
 								}
 							},
@@ -486,7 +496,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"name\": \"SPA\",\r\n    \"description\": \"Un spa relaxant dédié à votre bien-être, offrant des soins apaisants et une expérience de détente inoubliable.\"\r\n}",
+									"raw": "{\r\n    \"name\": \"Gym\",\r\n    \"description\": \"Salle de sport complet\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -528,7 +538,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"name\": \"Restaurant chinois\"\r\n}",
+									"raw": "{\r\n    \"name\": \"Restaurant chine\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -914,6 +924,57 @@
 							"response": []
 						},
 						{
+							"name": "Update current user picture",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "image",
+											"type": "file",
+											"src": "/C:/Users/Ratovonirina/OneDrive/Bureau/me4.jpg"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/users/upload_current/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"users",
+										"upload_current",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Update user by admin",
 							"event": [
 								{
@@ -942,7 +1003,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"firstname\": \"Big boss\"\r\n}",
+									"raw": "{\r\n    \"password\": \"admin\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -950,14 +1011,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/users/update_admin/2",
+									"raw": "{{base_url}}/users/update_admin/4",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"users",
 										"update_admin",
-										"2"
+										"4"
 									]
 								}
 							},
@@ -992,7 +1053,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"idRolea\": 1\r\n}",
+									"raw": "{\r\n    \"idRole\": 1\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1000,14 +1061,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/users/update_poste/2",
+									"raw": "{{base_url}}/users/update_poste/4",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"users",
 										"update_poste",
-										"2"
+										"4"
 									]
 								}
 							},
@@ -1047,7 +1108,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"idRole\": 2,\r\n    \"email\": \"julia@gmail.com\",\r\n    \"login\": \"Julia\",\r\n    \"password\": \"pass1234\",\r\n    \"name\": \"Julia\", \r\n    \"firstname\": \"Queen\", \r\n    \"phone\": \"0205456874\", \r\n    \"genre\": \"FEMME\", \r\n    \"adress\": \"Tananarive Madagascar\"\r\n}",
+									"raw": "{\r\n    \"idRole\": 2,\r\n    \"email\": \"admin@gmail.com\",\r\n    \"login\": \"admin\",\r\n    \"password\": \"admin1234\",\r\n    \"name\": \"Admin\", \r\n    \"firstname\": \"HSM\", \r\n    \"phone\": \"0205456874\", \r\n    \"genre\": \"HOMME\", \r\n    \"adress\": \"Tananarive Madagascar\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1265,6 +1326,44 @@
 							"response": []
 						},
 						{
+							"name": "Get unavailable room",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/unavailable?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"unavailable"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Get all image",
 							"request": {
 								"auth": {
@@ -1347,14 +1446,14 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/get/2",
+									"raw": "{{base_url}}/rooms/get/3",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"rooms",
 										"get",
-										"2"
+										"3"
 									]
 								}
 							},
@@ -1884,7 +1983,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"name\": \"Ratovonirina\",\r\n    \"firstName\": \"Eric\",\r\n    \"phone\": \"+263342487719\",\r\n    \"email\": \"eric.ratovonirina@gmail.com\",\r\n    \"genre\": \"Male\",\r\n    \"adress\": \"Nice, Cityville\",\r\n    \"cin\": \"103011904904\"\r\n}",
+									"raw": "{\r\n    \"name\": \"Ben\",\r\n    \"firstName\": \"Ben\",\r\n    \"phone\": \"+263342487719\",\r\n    \"email\": \"eric.Ben@gmail.com\",\r\n    \"genre\": \"Male\",\r\n    \"adress\": \"Nice, Cityville\",\r\n    \"cin\": \"103011904903\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2134,7 +2233,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/services/item/all/1",
+									"raw": "{{base_url}}/services/item/all/1?page=1&limit=5",
 									"host": [
 										"{{base_url}}"
 									],
@@ -2143,6 +2242,16 @@
 										"item",
 										"all",
 										"1"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
 									]
 								}
 							},
@@ -2164,7 +2273,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/services/item/detail/1",
+									"raw": "{{base_url}}/services/item/detail/3",
 									"host": [
 										"{{base_url}}"
 									],
@@ -2172,7 +2281,37 @@
 										"services",
 										"item",
 										"detail",
-										"1"
+										"3"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get image item",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/services/item/image/3",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"services",
+										"item",
+										"image",
+										"3"
 									]
 								}
 							},
@@ -2200,7 +2339,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"title\": \"Grilled Salmon Steak\",\r\n    \"subTitle\": \"Fresh and Healthy\",\r\n    \"description\": \"A perfectly grilled salmon steak served with a side of steamed vegetables and a tangy lemon butter sauce.\",\r\n    \"price\": 18.50,\r\n    \"unity\": \"plate\"\r\n}\r\n",
+									"raw": "{\r\n    \"title\": \"Steak Be mafilotra be\",\r\n    \"subTitle\": \"Fresh and Healthy\",\r\n    \"description\": \"A perfectly grilled salmon steak served with a side of steamed vegetables and a tangy lemon butter sauce.\",\r\n    \"price\": 18.50,\r\n    \"unity\": \"plate\"\r\n}\r\n",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2217,6 +2356,46 @@
 										"item",
 										"create",
 										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Images Item",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "images",
+											"type": "file",
+											"src": "/C:/Users/Ratovonirina/OneDrive/Bureau/cover.jpg"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/services/item/createimage/3",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"services",
+										"item",
+										"createimage",
+										"3"
 									]
 								}
 							},
@@ -2244,7 +2423,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"title\": \"Grilled\"\r\n}\r\n",
+									"raw": "{\r\n    \"title\": \"Grilledaa\"\r\n}\r\n",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2305,6 +2484,57 @@
 										"item",
 										"delete",
 										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete image item",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/services/item/deleteimage/2",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"services",
+										"item",
+										"deleteimage",
+										"2"
 									]
 								}
 							},
@@ -2455,7 +2685,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"idRoom\": 1,\r\n    \"idClient\": 2,\r\n    \"idStatus\": 2,\r\n    \"DateStart\": \"2024-12-25T14:00:00Z\",\r\n    \"DateEnd\": \"2024-12-28T12:00:00Z\"\r\n}",
+									"raw": "{\r\n    \"idRoom\": 2,\r\n    \"idClient\": 2,\r\n    \"idStatus\": 3,\r\n    \"DateStart\": \"2024-12-25T14:00:00Z\",\r\n    \"DateEnd\": \"2024-12-28T12:00:00Z\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
