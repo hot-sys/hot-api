@@ -1,53 +1,46 @@
+import logging
 from django.core.cache import cache
-from django.views.decorators.cache import cache_page
-from functools import wraps
-from django.http import JsonResponse
+import hashlib
+logger = logging.getLogger(__name__)
 
-def cache_response(timeout=60 * 15, cache_key_func=None):
-    """
-    Décorateur pour mettre en cache les réponses des endpoints.
+def generate_cache_key(base_key, **kwargs):
+    raw_key = base_key + "_" + "_".join(f"{k}={v}" for k, v in kwargs.items())
+    hashed_key = hashlib.md5(raw_key.encode('utf-8')).hexdigest()
 
-    Args:
-        timeout (int): Durée de vie du cache en secondes (par défaut : 15 minutes).
-        cache_key_func (callable): Fonction pour générer une clé de cache unique.
-    """
-    def decorator(view_func):
-        @wraps(view_func)
-        def wrapped_view(request, *args, **kwargs):
-            idUser = getattr(request, 'idUser', 'anonymous')  # Vérifier que 'idUser' est bien défini
-            print(f"User ID: {idUser}") 
-            
-            # Générer la clé de cache en fonction de l'utilisateur ou du contexte
-            if cache_key_func:
-                key = cache_key_func(request, *args, **kwargs)
-            else:
-                idUser = getattr(request, 'idUser', 'anonymous')
-                key = f"{request.path}:{idUser}"
-            print('CACHEEEEEEEEEEEEEEEEEEEEEEEEE', key)
-            # Appliquer le cache_page si la clé de cache est générée
-            cached_view = cache_page(timeout)(view_func)
+    tracked_keys = cache.get('tracked_keys', {})
+    tracked_keys[raw_key] = hashed_key
+    cache.set('tracked_keys', tracked_keys)
 
-            # Vérifier si une réponse est déjà dans le cache
-            cached_response = cache.get(key)
-            if cached_response:
-                print(f"Cache recup: {key}")
-                return JsonResponse(cached_response, safe=False)
+    return hashed_key
 
-            # Exécuter la vue et mettre la réponse en cache
-            response = cached_view(request, *args, **kwargs)
+def list_cached_keys_by_prefix(prefix):
+    tracked_keys = cache.get('tracked_keys', {})
+    matching_keys = {raw_key: hashed_key for raw_key, hashed_key in tracked_keys.items() if raw_key.startswith(prefix)}
+    return matching_keys
 
-            # Si la réponse est un JsonResponse, la mettre en cache
-            if isinstance(response, JsonResponse):
-                try:
-                    cache.set(key, response.content, timeout)
-                    print(f"Cache set: {key}")
-                except Exception as e:
-                    print(f"Error caching response: {e}")
+def get_cached_data(cache_key):
+    return cache.get(cache_key)
 
-            return response
-        return wrapped_view
-    return decorator
+def set_cached_data(key, value, timeout=None):
+    logger.info(f"Setting cache for key: {key}")
+    cache.set(key, value, timeout)
 
-def invalidate_user_cache(idUser):
-    key = f"user:{idUser}:/current_user"
+def get_cached_data(key):
+    logger.info(f"Getting cache for key: {key}")
+    return cache.get(key)
+
+def delete_cached_data(key):
+    logger.info(f"Deleting cache for key: {key}")
     cache.delete(key)
+
+def delete_cache_by_prefix(prefix):
+    tracked_keys = cache.get('tracked_keys', {})
+
+    keys_to_delete = [hashed_key for raw_key, hashed_key in tracked_keys.items() if raw_key.startswith(prefix)]
+
+    for hashed_key in keys_to_delete:
+        logger.info(f"Deleting cache for key: {hashed_key}")
+        cache.delete(hashed_key)
+
+    updated_keys = {raw_key: hashed_key for raw_key, hashed_key in tracked_keys.items() if raw_key not in keys_to_delete}
+    cache.set('tracked_keys', updated_keys)

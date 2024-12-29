@@ -15,13 +15,7 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 import redis
-# from django.core.cache import cache
 load_dotenv(dotenv_path=".env")
-
-# cache.set('test_key', {'data': 'test_value'}, 60)
-# print(cache.get('test_key'))
-
-# redis_instance = redis.StrictRedis(host='localhost', port=6379, password='pass')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -74,28 +68,35 @@ CORS_ALLOW_METHODS = [
 # FOR CACHE
 CACHE_BACKEND = os.getenv('CACHE_BACKEND')
 CACHE_LOCATION = os.getenv('CACHE_LOCATION')
+CACHE_TTL = 60 * 30
 
-# CACHES = {
-#     'default': {
-#         'BACKEND': CACHE_BACKEND,
-#         'LOCATION': CACHE_LOCATION,
-#     }
-# }
+CACHES = {
+    'default': {
+        'BACKEND': CACHE_BACKEND,
+        'LOCATION': CACHE_LOCATION,
+    }
+}
 
 # FOR DEBUG
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'console': {
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'root': {
-#         'handlers': ['console'],
-#         'level': 'DEBUG',
-#     },
-# }
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        },
+    },
+}
 
 # Application definition
 
@@ -179,6 +180,7 @@ DATABASES = {
                 'ca': os.path.join(BASE_DIR, 'ca.pem'),
             },
         },
+        'CONN_MAX_AGE': 600,
     }
 }
 # DATABASES = {

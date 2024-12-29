@@ -16,7 +16,8 @@ from datetime import datetime, timedelta
 from utils.services.supabase_room_service import upload_images, remove_file
 from django.db.models import Q
 from hot_history.views import create_history
-
+from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
+from django.conf import settings
 
 # COMMAND API
 # --------------------------------------------------------------------------------
@@ -54,6 +55,8 @@ def commande(request):
             diffDays = int((validated_data['DateEnd'] - validated_data['DateStart']).days)
             if diffDays == 0:
                 diffDays = 1
+            else:
+                diffDays += 1
             total = price * diffDays
             commande = CommandeRoom.objects.create(
                 idRoom_id=validated_data['idRoom'],
@@ -76,6 +79,10 @@ def commande(request):
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
             serializer = CommandeRoomSerializer(commande)
+        list_cached_keys_by_prefix("commande-")
+        delete_cache_by_prefix("commande-")
+        delete_cache_by_prefix("room-")
+        delete_cache_by_prefix("commande-")
         return api_response(data=serializer.data, message="Commande created successfully", success=True, status_code=200)
     else:
         return api_response(data=None, message=dto.errors, success=False, status_code=400)
@@ -121,6 +128,8 @@ def reserved(request):
                     total=total
                 )
                 serializer = CommandeRoomSerializer(commande)
+            list_cached_keys_by_prefix("commande-")
+            delete_cache_by_prefix("commande-")
             return api_response(data=serializer.data, message="Commande reserved successfully", success=True, status_code=200)
         else:
             return api_response(data=None, message=dto.errors, success=False, status_code=400)
@@ -217,6 +226,8 @@ def confirmeCommande(request, idCommande):
             create_history(admin, 1, commande, "Commande confirmed")
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
+        list_cached_keys_by_prefix("commande-")
+        delete_cache_by_prefix("commande-")
         return api_response(data=serializer.data, message="Commande confirmed successfully", success=True, status_code=200)
     except CommandeRoom.DoesNotExist:
         return api_response(data=None, message="Commande not found", success=False, status_code=404)
@@ -246,10 +257,14 @@ def confirmeCommande(request, idCommande):
 @checkAdmin
 def get_commande(request):
     try:
-        commande = CommandeRoom.objects.all()
-
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('commande-allwithpaginate', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
+
+        commande = CommandeRoom.objects.all()
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)
@@ -268,6 +283,7 @@ def get_commande(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="All commande room", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -295,28 +311,25 @@ def get_commande(request):
 @checkAdmin
 def get_all_commande(request):
     try:
-        commande = CommandeRoom.objects.all()
+        cache_key = generate_cache_key('commande-all')
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
 
+        commande = CommandeRoom.objects.all()
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        paginator = Paginator(commande, limit)
-        try:
-            commande_paginated = paginator.page(page)
-        except PageNotAnInteger:
-            commande_paginated = paginator.page(1)
-        except EmptyPage:
-            commande_paginated = []
-
         serializer = CommandeRoomSerializer(commande, many=True)
         data_paginated = {
             'commande': serializer.data,
             'paginations': {
                 'document': len(serializer.data),
-                'total_pages': paginator.num_pages,
-                'current_page': commande_paginated.number,
+                'total_pages': page,
+                'current_page': page,
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="All commande room", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -351,8 +364,13 @@ def get_all_commande(request):
 @checkAdmin
 def get_commande_by_id(request, idCommande):
     try:
+        cache_key = generate_cache_key('commande-ById', idCommande=idCommande)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande retrieved successfully", success=True, status_code=200)
         commande = CommandeRoom.objects.get(idCommande=idCommande)
         serializer = CommandeRoomSerializer(commande)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
         return api_response(data=serializer.data, message="Commande retrieved successfully", success=True, status_code=200)
     except CommandeRoom.DoesNotExist:
         return api_response(data=None, message="Commande not found", success=False, status_code=404)
@@ -454,6 +472,8 @@ def create(request):
                     info=dto.validated_data.get('info')
                 )
                 serializer = RoomSerializer(room)
+            list_cached_keys_by_prefix("room-")
+            delete_cache_by_prefix("room-")
             return api_response(message="Create room successfully" ,data=serializer.data, success=True, status_code=200)
         else:
             return api_response(message=dto.errors, success=False, status_code=400)
@@ -499,6 +519,8 @@ def createimage(request, idRoom):
         urls = upload_images(files)
         for url in urls:
             RoomImage.objects.create(idRoom=room, image=url)
+        list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("room-")
         return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -538,6 +560,8 @@ def delete_image(request, idImage):
         image = RoomImage.objects.get(idImage=idImage)
         result = remove_file(image.image)
         image.delete()
+        list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("room-")
         return api_response(data=result, message="Image deleted successfully", success=True, status_code=200)
     except RoomImage.DoesNotExist:
         return api_response(data=None, message="Image not found", success=False, status_code=404)
@@ -570,6 +594,8 @@ def upload(request):
         if not files:
             return api_response(data=None, message="No images uploaded", success=False, status_code=400)
         urls = upload_images(files)
+        list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("room-")
         return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -595,10 +621,15 @@ def upload(request):
 @checkUser
 def all(request):
     try:
-        rooms = Room.objects.all().select_related('idAdmin')
-
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
+
+        cache_key = generate_cache_key('room-allwithpaginate', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All rooms", success=True, status_code=200)
+
+        rooms = Room.objects.all().select_related('idAdmin')
         paginator = Paginator(rooms, limit)
         try:
             rooms_paginated = paginator.page(page)
@@ -617,6 +648,7 @@ def all(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="All rooms", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -644,11 +676,16 @@ def all(request):
 @checkAdmin
 def imageall(request):
     try:
-        imageRoom = RoomImage.objects.all()
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        paginator = Paginator(imageRoom, limit)
 
+        cache_key = generate_cache_key('room-image-allwithpaginate', page=page, limit=limit)
+        cache_data = get_cached_data(cache_key)
+        if cache_data:
+            return api_response(data=cache_data, message="All images", success=True, status_code=200)
+
+        imageRoom = RoomImage.objects.all()
+        paginator = Paginator(imageRoom, limit)
         try:
             imageRoom_paginated = paginator.page(page)
         except PageNotAnInteger:
@@ -666,6 +703,7 @@ def imageall(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=serializer.data, message="All images", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -699,13 +737,18 @@ def imageall(request):
 @checkUser
 def image_room(request, idRoom):
     try:
+        cache_key = generate_cache_key('room-get-image', idRoom=idRoom)
+        cache_data = get_cached_data(cache_key)
+        if cache_data:
+            return api_response(data=cache_data, message="All images for a room", success=True, status_code=200)
         try:
             room = Room.objects.get(idRoom=idRoom)
         except Room.DoesNotExist:
             return api_response(data=None, message="Room not found", success=False, status_code=404)
         imageRoom = RoomImage.objects.filter(idRoom=idRoom)
         serializer = RoomImageSerializer(imageRoom, many=True)
-        return api_response(data=serializer.data, message="All images for an room", success=True, status_code=200)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
+        return api_response(data=serializer.data, message="All images for a room", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
@@ -737,6 +780,10 @@ def image_room(request, idRoom):
 @checkUser
 def get_room(request, idRoom):
     try:
+        cache_key = generate_cache_key('room-detail', idRoom=idRoom)
+        cache_data = get_cached_data(cache_key)
+        if cache_data:
+            return api_response(data=cache_data, message="Room retrieved successfully", success=True, status_code=200)
         room = Room.objects.get(idRoom=idRoom)
         serializer = RoomResponseSerializer(room)
         imageRome = RoomImage.objects.filter(idRoom=idRoom)
@@ -745,6 +792,7 @@ def get_room(request, idRoom):
             'Room': serializer.data,
             'images': serializerRoom.data
         }
+        set_cached_data(cache_key, data, timeout=settings.CACHE_TTL)
         return api_response(data=data, message="Room retrieved successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -773,12 +821,16 @@ def get_room(request, idRoom):
 @checkUser
 def room_unavailable(request):
     try:
-        rooms = Room.objects.filter(available=False)
-
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        paginator = Paginator(rooms, limit)
 
+        cache_key = generate_cache_key('room-unavailable', page=page, limit=limit)
+        cache_data = get_cached_data(cache_key)
+        if cache_data:
+            return api_response(data=cache_data, message="Rooms unavailable retrieved successfully", success=True, status_code=200)
+
+        rooms = Room.objects.filter(available=False)
+        paginator = Paginator(rooms, limit)
         try:
             rooms_paginated = paginator.page(page)
         except PageNotAnInteger:
@@ -796,6 +848,7 @@ def room_unavailable(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Rooms unavailable retrieved successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -822,12 +875,15 @@ def room_unavailable(request):
 @checkUser
 def room_available(request):
     try:
-        rooms = Room.objects.filter(available=True)
-
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        paginator = Paginator(rooms, limit)
+        cache_key = generate_cache_key('room-available', page=page, limit=limit)
+        cache_data = get_cached_data(cache_key)
+        if cache_data:
+            return api_response(data=cache_data, message="Rooms available retrieved successfully", success=True, status_code=200)
 
+        rooms = Room.objects.filter(available=True)
+        paginator = Paginator(rooms, limit)
         try:
             rooms_paginated = paginator.page(page)
         except PageNotAnInteger:
@@ -845,6 +901,7 @@ def room_available(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Rooms available retrieved successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -874,6 +931,13 @@ def search_room(request):
     data = request.data
     if 'query' in data:
         query = data['query']
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+
+        cache_key = generate_cache_key('room-search', query=query, page=page, limit=limit)
+        cache_data = get_cached_data(cache_key)
+        if cache_data:
+            return api_response(data=cache_data, message="Rooms search retrieved successfully", success=True, status_code=200)
 
         rooms = Room.objects.filter(
             Q(title__icontains=query) |
@@ -882,8 +946,6 @@ def search_room(request):
             Q(price__icontains=query)
         )
 
-        page = int(request.GET.get('page', 1))
-        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(rooms, limit)
 
         try:
@@ -903,6 +965,7 @@ def search_room(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Rooms search retrieved successfully", success=True, status_code=200)
     else:
         return api_response(data=None, message="Query is required", success=False, status_code=400)
@@ -952,6 +1015,8 @@ def update_by_admin(request, idRoom):
                 setattr(room, key, value)
             room.save()
             serializer = RoomResponseSerializer(room)
+            list_cached_keys_by_prefix("room-")
+            delete_cache_by_prefix("room-")
             return api_response(data=serializer.data, message="Room updated successfully", success=True, status_code=200)
         except Room.DoesNotExist:
             return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -991,6 +1056,8 @@ def free_room(request, idRoom):
         room.available = True
         room.dateAvailable = None
         room.save()
+        list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room freed successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -1032,6 +1099,8 @@ def delete_by_admin(request, idRoom):
             return api_response(data=None, message="You can't delete this room", success=False, status_code=403)
         room.deletedAt = datetime.now()
         room.save()
+        list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room deleted successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)
@@ -1073,6 +1142,8 @@ def recover_by_admin(request, idRoom):
             return api_response(data=None, message="You can't recover this room", success=False, status_code=403)
         room.deletedAt = None
         room.save()
+        list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room recovered successfully", success=True, status_code=200)
     except Room.DoesNotExist:
         return api_response(data=None, message="Room not found", success=False, status_code=404)

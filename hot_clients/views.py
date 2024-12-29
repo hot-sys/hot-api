@@ -11,6 +11,8 @@ from .serializers import ClientSerializer, CreateClientDTO, UpdateClientDTO
 from django.db import transaction
 from django.db.models import Q
 from datetime import datetime, timedelta
+from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
+from django.conf import settings
 
 @extend_schema(
     responses={
@@ -35,10 +37,14 @@ from datetime import datetime, timedelta
 @checkAdmin
 def all(request):
     try:
-        clients = Client.objects.all()
-
         page = request.GET.get('page', 1)
         limit = request.GET.get('limit', 10)
+        cache_key = generate_cache_key('client-getall', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Clients retrieved successfully", success=True, status_code=200)
+
+        clients = Client.objects.all()
         paginator = Paginator(clients, limit)
 
         try:
@@ -58,7 +64,8 @@ def all(request):
                 'limit': limit
             }
         }
-        return api_response(data=data_paginated, message="Clients retrieved successfully")
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="Clients retrieved successfully", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
 
@@ -91,9 +98,14 @@ def all(request):
 @checkAdmin
 def get_by_id(request, idClient):
     try:
+        cache_key = generate_cache_key('client-getbyid', idClient=idClient)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Client retrieved successfully", success=True, status_code=200)
         client = Client.objects.get(idClient=idClient)
         serializer = ClientSerializer(client)
-        return api_response(data=serializer.data, message="Client retrieved successfully")
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
+        return api_response(data=serializer.data, message="Client retrieved successfully", success=True, status_code=200)
     except Client.DoesNotExist:
         return api_response(message="Client not found", success=False, status_code=404)
 
@@ -137,6 +149,8 @@ def update(request, idClient):
                 setattr(client, key, value)
             client.save()
             serializer = ClientSerializer(client)
+            list_cached_keys_by_prefix("client-")
+            delete_cache_by_prefix("client-")
             return api_response(data=serializer.data, message="Client updated successfully")
         except Client.DoesNotExist:
             return api_response(message="Client not found", success=False, status_code=404)
@@ -175,6 +189,8 @@ def delete(request, idClient):
         client = Client.objects.get(idClient=idClient)
         client.deletedAt = datetime.now()
         client.save()
+        list_cached_keys_by_prefix("client-")
+        delete_cache_by_prefix("client-")
         return api_response(message="Client deleted successfully")
     except Client.DoesNotExist:
         return api_response(message="Client not found", success=False, status_code=404)
@@ -211,6 +227,8 @@ def recover(request, idClient):
         client = Client.all_objects.get(idClient=idClient)
         client.deletedAt = None
         client.save()
+        list_cached_keys_by_prefix("client-")
+        delete_cache_by_prefix("client-")
         return api_response(message="Client recovered successfully")
     except Client.DoesNotExist:
         return api_response(message="Client not found", success=False, status_code=404)
@@ -240,6 +258,14 @@ def search(request):
     data = request.data
     if 'query' in data:
         query = data['query']
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+
+        cache_key = generate_cache_key('client-search', query=query, page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Client search retrieved successfully", success=True, status_code=200)
+
         clients = Client.objects.filter(
             Q(name__icontains=query) |
             Q(firstName__icontains=query) |
@@ -247,9 +273,6 @@ def search(request):
             Q(email__icontains=query) |
             Q(adress__icontains=query)
         )
-
-        page = request.GET.get('page', 1)
-        limit = request.GET.get('limit', 10)
         paginator = Paginator(clients, limit)
 
         try:
@@ -269,6 +292,7 @@ def search(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Client search retrieved successfully", success=True, status_code=200)
 
     else:
@@ -314,6 +338,8 @@ def create(request):
                 cin=dto.validated_data['cin']
             )
             serializer = ClientSerializer(client)
+        list_cached_keys_by_prefix("client-")
+        delete_cache_by_prefix("client-")
         return api_response(data=serializer.data, message="Client created successfully")
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
