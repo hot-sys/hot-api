@@ -19,6 +19,62 @@ from hot_history.views import create_history
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
 from django.conf import settings
 
+# STAT API
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Stat retrieved successfully"),
+        400: OpenApiResponse(description="Bad Request"),
+        401: OpenApiResponse(description="Unauthorized"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Get all stats",
+    summary="Get stats",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def stat(request):
+    try:
+        cache_key = generate_cache_key('room-stat')
+        data = get_cached_data(cache_key)
+        if data is not None:
+            return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
+        totalRoom = Room.objects.all().count()
+        totalRoomAvailable = Room.objects.filter(available=True).count()
+        totalRoomUnavailable = Room.objects.filter(available=False).count()
+        totalCommande = CommandeRoom.objects.all().count()
+        totalCommandeReserved = CommandeRoom.objects.filter(idStatus=1).count()
+        totalCommandeCanceled = CommandeRoom.objects.filter(idStatus=2).count()
+        totalCommandeConfirmed = CommandeRoom.objects.filter(idStatus=3).count()
+        totalCommandePending = CommandeRoom.objects.filter(idStatus=4).count()
+        data = {
+            'totalRoom': totalRoom,
+            'totalRoomAvailable': totalRoomAvailable,
+            'totalRoomUnavailable': totalRoomUnavailable,
+            'totalCommande': totalCommande,
+            'totalCommandeConfirmed': totalCommandeConfirmed,
+            'totalCommandeReserved': totalCommandeReserved,
+            'totalCommandeCanceled': totalCommandeCanceled,
+            'totalCommandePending': totalCommandePending
+        }
+        set_cached_data(cache_key, data, settings.CACHE_TTL)
+        return api_response(data=data, message="Stat retrieved successfully", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
 # COMMAND API
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
@@ -285,6 +341,61 @@ def get_commande(request):
         }
         set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="All commande room", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All commande reserved room"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all commandes reserved room with paginate data",
+    summary="Get all commandes reserved room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_commande_reserved(request):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('commande-reserved', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All commande reserved room", success=True, status_code=200)
+
+        commande = CommandeRoom.objects.filter(idStatus=1)
+        paginator = Paginator(commande, limit)
+        try:
+            commande_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_paginated = []
+
+        serializer = CommandeRoomSerializer(commande_paginated, many=True)
+        data_paginated = {
+            'commande': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="All commande reserved room", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 

@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import all, get_room, commande, reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
+from .views import all, stat, get_room, commande, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
 
 urlpatterns = [
     path('all', all, name='all'),
+    path('stat', stat, name='stat'),
     path('commande/create', commande, name='commande'),
     path('commande/reserved', reserved, name='reserved'),
     path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
@@ -10,6 +11,7 @@ urlpatterns = [
     path('commande/simulate', simulate_commande, name='simulate_commande'),
     path('commande/all', get_commande, name='get_commande'),
     path('commande/getall', get_all_commande, name='get_all_commande'),
+    path('commande/getreserved', get_commande_reserved, name='get_commande_reserved'),
     path('commande/get/<int:idCommande>', get_commande_by_id, name='get_commande_by_id'),
     path('create', create, name='create'),
     path('upload', upload, name='upload'),

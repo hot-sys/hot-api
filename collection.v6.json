@@ -67,7 +67,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"login\": \"ratovonirina\",\r\n    \"password\": \"passa\"\r\n}",
+									"raw": "{\r\n    \"login\": \"admin\",\r\n    \"password\": \"admin1234\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -177,7 +177,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"poste\": \"Moderator\"\r\n}",
+									"raw": "{\r\n    \"poste\": \"Administrator\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1003,7 +1003,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"password\": \"admin\"\r\n}",
+									"raw": "{\r\n    \"password\": \"admin1234\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1011,14 +1011,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/users/update_admin/4",
+									"raw": "{{base_url}}/users/update_admin/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"users",
 										"update_admin",
-										"4"
+										"1"
 									]
 								}
 							},
@@ -1108,7 +1108,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"idRole\": 2,\r\n    \"email\": \"admin@gmail.com\",\r\n    \"login\": \"admin\",\r\n    \"password\": \"admin1234\",\r\n    \"name\": \"Admin\", \r\n    \"firstname\": \"HSM\", \r\n    \"phone\": \"0205456874\", \r\n    \"genre\": \"HOMME\", \r\n    \"adress\": \"Tananarive Madagascar\"\r\n}",
+									"raw": "{\r\n    \"idRole\": 1,\r\n    \"email\": \"admin2@gmail.com\",\r\n    \"login\": \"admin2\",\r\n    \"password\": \"admin1234\",\r\n    \"name\": \"Admin\", \r\n    \"firstname\": \"HSM\", \r\n    \"phone\": \"0205456874\", \r\n    \"genre\": \"HOMME\", \r\n    \"adress\": \"Tananarive Madagascar\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1454,6 +1454,34 @@
 										"rooms",
 										"get",
 										"3"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get stat",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/stat",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"stat"
 									]
 								}
 							},
@@ -2610,7 +2638,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/commande/all?page=1&limit=10",
+									"raw": "{{base_url}}/rooms/commande/all?page=2&limit=10",
 									"host": [
 										"{{base_url}}"
 									],
@@ -2622,12 +2650,41 @@
 									"query": [
 										{
 											"key": "page",
-											"value": "1"
+											"value": "2"
 										},
 										{
 											"key": "limit",
 											"value": "10"
 										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get all commande without paginate",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/commande/getall",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"commande",
+										"getall"
 									]
 								}
 							},

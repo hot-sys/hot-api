@@ -24,9 +24,14 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = 'idUser', 'idRole', 'login', 'password', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'updatedAt', 'deletedAt', 'preference'
 
+class CreateUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = 'idUser', 'idRole', 'login', 'password', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'updatedAt', 'deletedAt'
+
 class UserSerializerResponse(serializers.ModelSerializer):
     preference = UserPreferenceSerializer(read_only=True)
-    idRole = RoleSerializer()
+    idRole = RoleSerializer(read_only=True)
     class Meta:
         model = User
         fields = 'idUser', 'idRole', 'login', 'image', 'name', 'firstname', 'phone', 'email', 'genre', 'adress', 'createdAt', 'preference'

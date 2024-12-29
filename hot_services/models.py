@@ -13,7 +13,7 @@ class AllManager(models.Manager):
 class Status(models.Model):
     idStatus = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
-    # 1: Reserved, 2: Confirmed, 3: Canceled, 4: Finished
+    # 1: Reserved, 2: Canceled, 3: Confirmed, 4: Pending
     def __str__(self):
         return self.name
 

@@ -2,7 +2,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from utils.token_required import token_required
 from rest_framework.decorators import api_view, authentication_classes, parser_classes
 from .models import User, Role
-from .serializers import UserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, UpdateUserDto, RoleDTO, UpdatePosteDTO
+from .serializers import CreateUserSerializer, UserSerializerResponse, RoleSerializer, LoginDTO, RegisterDTO, UpdateUserDto, RoleDTO, UpdatePosteDTO
 from utils.api_response import api_response
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
@@ -59,16 +59,15 @@ def login(request):
                 refresh_token = jwt.encode(refresh_payload, settings.TOKEN_KEY, algorithm='HS256')
                 return api_response(data={"access_token": access_token, "refresh_token": refresh_token}, message="Login successful")
         except User.DoesNotExist:
-            pass
-
+            return api_response(message="User not found", success=False, status_code=404)
         return api_response(message="Invalid credentials", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
 @extend_schema(
     request=RegisterDTO,
     responses={
-        201: UserSerializer,
-        400: OpenApiResponse(description='Invalid input data or user data')  
+        201: CreateUserSerializer,
+        400: OpenApiResponse(description='Invalid input data or user data')
     },
     description="Endpoint to create a new user. The user must provide the necessary registration data.",
     summary="Create new user",
@@ -92,7 +91,7 @@ def create(request):
     if dto.is_valid():
         validated_data = dto.validated_data
         validated_data['password'] = make_password(validated_data['password'])
-        serializer = UserSerializerResponse(data=validated_data)
+        serializer = CreateUserSerializer(data=validated_data)
         if serializer.is_valid():
             serializer.save()
             return api_response(data=serializer.data, message="User registered successfully")
@@ -213,15 +212,15 @@ def update_current_user(request):
 )
 @api_view(['PATCH'])
 @authentication_classes([TokenAuthentication])
-@token_required
-@checkUser
-@checkAdmin
+# @token_required
+# @checkUser
+# @checkAdmin
 def update_admin_user(request, idUser):
     data = request.data
     dto = UpdateUserDto(data=data)
-    current_user = request.idUser
-    if current_user == idUser:
-        return api_response(message="Update other account available", success=False, status_code=403)
+    # current_user = request.idUser
+    # if current_user == idUser:
+    #     return api_response(message="Update other account available", success=False, status_code=403)
     if dto.is_valid():
         validated_data = dto.validated_data
         try:
@@ -420,9 +419,9 @@ def current_user(request):
 )
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
-@token_required
-@checkUser
-@checkAdmin
+# @token_required
+# @checkUser
+# @checkAdmin
 def get_all_users(request):
     try:
         cache_key = generate_cache_key('users-all')
