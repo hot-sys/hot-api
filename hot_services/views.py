@@ -15,8 +15,8 @@ from datetime import datetime, timedelta
 from hot_history.views import create_history
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
-# from utils.cache_utils import cache_response
-# from django.views.decorators.cache import cache_page
+from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
+from django.conf import settings
 
 # COMMANDE SERVICE ITEMS API
 # --------------------------------------------------------------------------------
@@ -71,6 +71,8 @@ def create_commande(request):
             create_history(admin, 2, commande_service, "Commande service created")
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
+        list_cached_keys_by_prefix("comservice-")
+        delete_cache_by_prefix("comservice-")
         serializer = CommandeServiceSerializer(commande_service)
         return api_response(data=serializer.data, message="Commande service created", success=True, status_code=201)
     else:
@@ -163,6 +165,8 @@ def confirmeCommande(request, idCommande):
             create_history(admin, 2, commande, "Commande service item confirmed")
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
+        list_cached_keys_by_prefix("comservice-")
+        delete_cache_by_prefix("comservice-")
         return api_response(data=serializer.data, message="Commande service item confirmed successfully", success=True, status_code=200)
     except CommandeService.DoesNotExist:
         return api_response(data=None, message="Commande service item not found", success=False, status_code=404)
@@ -192,10 +196,14 @@ def confirmeCommande(request, idCommande):
 @checkAdmin
 def get_all_commande(request):
     try:
-        commandes = CommandeService.objects.all()
-
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('comservice-all-withpaginate', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande service list", success=True, status_code=200)
+
+        commandes = CommandeService.objects.all()
         paginator = Paginator(commandes, limit)
         try:
             commande_item_paginated = paginator.page(page)
@@ -214,6 +222,7 @@ def get_all_commande(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Commande service list", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
@@ -248,8 +257,13 @@ def get_all_commande(request):
 @checkAdmin
 def get_commande_item(request, idCommande):
     try:
+        cache_key = generate_cache_key('comservice-commmande-item', idCommande=idCommande)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande item found", success=True, status_code=200)
         commande = CommandeService.objects.get(idCommande=idCommande)
         serializer = CommandeServiceSerializer(commande)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
         return api_response(data=serializer.data, message="Commande item found", success=True, status_code=200)
     except CommandeService.DoesNotExist:
         return api_response(message="Commande item not found", success=False, status_code=404)
@@ -363,6 +377,8 @@ def create_item_service(request, idService):
                     unity=validated_data['unity'],
                 )
             serializer = ServiceItemSerializer(item)
+            list_cached_keys_by_prefix("service-item-")
+            delete_cache_by_prefix("service-item-")
             return api_response(data=serializer.data, message="Service Item created", success=True)
         else:
             return api_response(message=dto.errors, success=False)
@@ -409,6 +425,8 @@ def create_image_item_service(request, idItem):
         urls = upload_images(files)
         for url in urls:
             ItemImage.objects.create(idItem=item, image=url)
+        list_cached_keys_by_prefix("service-item-")
+        delete_cache_by_prefix("service-item-")
         return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
     except ServiceItem.DoesNotExist:
         return api_response(data=None, message="Item not found", success=False, status_code=404)
@@ -448,6 +466,8 @@ def delete_image_item_service(request, idImage):
         image = ItemImage.objects.get(idImage=idImage)
         result = remove_file(image.image)
         image.delete()
+        list_cached_keys_by_prefix("service-item-")
+        delete_cache_by_prefix("service-item-")
         return api_response(data=result, message="Image deleted successfully", success=True, status_code=200)
     except ItemImage.DoesNotExist:
         return api_response(data=None, message="Image not found", success=False, status_code=404)
@@ -483,12 +503,17 @@ def delete_image_item_service(request, idImage):
 @checkUser
 def get_image_item_service(request, idItem):
     try:
+        cache_key = generate_cache_key('service-item-image', idItem=idItem)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All images for an item", success=True, status_code=200)
         try:
             item = ServiceItem.objects.get(idItem=idItem)
         except ServiceItem.DoesNotExist:
             return api_response(data=None, message="Room not found", success=False, status_code=404)
         imageItem = ItemImage.objects.filter(idItem=idItem)
         serializer = ItemImageSerializer(imageItem, many=True)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
         return api_response(data=serializer.data, message="All images for an item", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -526,6 +551,8 @@ def delete_item_service(request, idItem):
         item = ServiceItem.objects.get(idItem=idItem)
         item.deletedAt = datetime.now()
         item.save()
+        list_cached_keys_by_prefix("service-item-")
+        delete_cache_by_prefix("service-item-")
         return api_response(message="Service item deleted", success=True, status_code=200)
     except ServiceItem.DoesNotExist:
         return api_response(message="Service item not found", success=False, status_code=404)
@@ -564,6 +591,8 @@ def recover_item_service(request, idItem):
         item = ServiceItem.all_objects.get(idItem=idItem)
         item.deletedAt = None
         item.save()
+        list_cached_keys_by_prefix("service-item-")
+        delete_cache_by_prefix("service-item-")
         return api_response(message="Service item recovered", success=True, status_code=200)
     except ServiceItem.DoesNotExist:
         return api_response(message="Service item not found", success=False, status_code=404)
@@ -610,6 +639,8 @@ def update_item_service(request, idItem):
         if serializer.is_valid():
             serializer.save()
             return api_response(data=serializer.data, message="Service item updated", success=True, status_code=200)
+        list_cached_keys_by_prefix("service-item-")
+        delete_cache_by_prefix("service-item-")
         return api_response(message=serializer.errors, success=False, status_code=400)
     except ServiceItem.DoesNotExist:
         return api_response(message="Service item not found", success=False, status_code=404)
@@ -646,14 +677,19 @@ def update_item_service(request, idItem):
 @checkAdmin
 def get_all_service_item(request, idService):
     try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('service-item-withpaginate', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Service item list", success=True, status_code=200)
+
         try:
             service = Service.objects.get(pk=idService)
         except Service.DoesNotExist:
             return api_response(message="Service not found", success=False, status_code=404)
         serviceItems = ServiceItem.objects.filter(idService=idService)
 
-        page = int(request.GET.get('page', 1))
-        limit = int(request.GET.get('limit', 10))
         paginator = Paginator(serviceItems, limit)
         try:
             item_paginated = paginator.page(page)
@@ -672,6 +708,7 @@ def get_all_service_item(request, idService):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Service item list", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
@@ -706,6 +743,10 @@ def get_all_service_item(request, idService):
 @checkAdmin
 def get_detail_item(request, idItem):
     try:
+        cache_key = generate_cache_key('service-item-withpaginate', idItem=idItem)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Item found", success=True, status_code=200)
         item = ServiceItem.objects.get(idItem=idItem)
         serializer = ServiceItemSerializer(item)
         imageItem = ItemImage.objects.filter(idItem=idItem)
@@ -714,6 +755,7 @@ def get_detail_item(request, idItem):
             'item': serializer.data,
             'images': serializerItem.data
         }
+        set_cached_data(cache_key, data, timeout=settings.CACHE_TTL)
         return api_response(data=data, message="Item found", success=True, status_code=200)
     except ServiceItem.DoesNotExist:
         return api_response(message="Item not found", success=False, status_code=404)
@@ -757,7 +799,9 @@ def create_service(request):
                 description=dto.validated_data['description']
             )
             serializer = ServiceSerializer(service)
-            return api_response(data=serializer.data, message="Service created", success=True, status_code=201)
+        list_cached_keys_by_prefix("serviceself-")
+        delete_cache_by_prefix("serviceself-")
+        return api_response(data=serializer.data, message="Service created", success=True, status_code=201)
     else:
         return api_response(message=dto.errors, success=False, status_code=400)
 
@@ -796,6 +840,8 @@ def update_service(request, idService):
         serializer = ServiceSerializer(service, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            list_cached_keys_by_prefix("serviceself-")
+            delete_cache_by_prefix("serviceself-")
             return api_response(data=serializer.data, message="Service updated", success=True, status_code=200)
         return api_response(message=serializer.errors, success=False, status_code=400)
     except Service.DoesNotExist:
@@ -837,6 +883,8 @@ def delete_service(request, idService):
         service = Service.objects.get(idService=idService)
         service.deletedAt = datetime.now()
         service.save()
+        list_cached_keys_by_prefix("serviceself-")
+        delete_cache_by_prefix("serviceself-")
         return api_response(message="Service deleted", success=True, status_code=200)
     except Service.DoesNotExist:
         return api_response(message="Service not found", success=False, status_code=404)
@@ -876,6 +924,8 @@ def recover_service(request, idService):
         service = Service.all_objects.get(idService=idService)
         service.deletedAt = None
         service.save()
+        list_cached_keys_by_prefix("serviceself-")
+        delete_cache_by_prefix("serviceself-")
         return api_response(message="Service recovered", success=True, status_code=200)
     except Service.DoesNotExist:
         return api_response(message="Service not found", success=False, status_code=404)
@@ -903,14 +953,16 @@ def recover_service(request, idService):
 @token_required
 @checkUser
 @checkAdmin
-# @cache_page(60 * 15)
-# @cache_response(timeout=60 * 15, cache_key_func=lambda request, *args, **kwargs: f"user:{request.idUser}:{request.path}")
 def get_all_service(request):
     try:
-        services = Service.objects.all()
-
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('serviceself-withpaginate', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Service list", success=True, status_code=200)
+
+        services = Service.objects.all()
         paginator = Paginator(services, limit)
         try:
             service_paginated = paginator.page(page)
@@ -929,6 +981,7 @@ def get_all_service(request):
                 'limit': limit
             }
         }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Service list", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
@@ -962,8 +1015,13 @@ def get_all_service(request):
 @checkAdmin
 def get_by_id_service(request, idService):
     try:
+        cache_key = generate_cache_key('serviceself-detail', idService=idService)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Service found", success=True, status_code=200)
         service = Service.objects.get(idService=idService)
         serializer = ServiceSerializer(service)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
         return api_response(data=serializer.data, message="Service found", success=True, status_code=200)
     except Service.DoesNotExist:
         return api_response(message="Service not found", success=False, status_code=404)
