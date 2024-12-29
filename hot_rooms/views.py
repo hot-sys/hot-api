@@ -55,6 +55,8 @@ def commande(request):
             diffDays = int((validated_data['DateEnd'] - validated_data['DateStart']).days)
             if diffDays == 0:
                 diffDays = 1
+            else:
+                diffDays += 1
             total = price * diffDays
             commande = CommandeRoom.objects.create(
                 idRoom_id=validated_data['idRoom'],
@@ -78,6 +80,8 @@ def commande(request):
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
             serializer = CommandeRoomSerializer(commande)
         list_cached_keys_by_prefix("commande-")
+        delete_cache_by_prefix("commande-")
+        delete_cache_by_prefix("room-")
         delete_cache_by_prefix("commande-")
         return api_response(data=serializer.data, message="Commande created successfully", success=True, status_code=200)
     else:
