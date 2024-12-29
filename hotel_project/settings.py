@@ -68,7 +68,7 @@ CORS_ALLOW_METHODS = [
 # FOR CACHE
 CACHE_BACKEND = os.getenv('CACHE_BACKEND')
 CACHE_LOCATION = os.getenv('CACHE_LOCATION')
-CACHE_TTL = 60 * 15
+CACHE_TTL = 60 * 30
 
 CACHES = {
     'default': {
@@ -89,6 +89,12 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': 'DEBUG',
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        },
     },
 }
 
@@ -174,6 +180,7 @@ DATABASES = {
                 'ca': os.path.join(BASE_DIR, 'ca.pem'),
             },
         },
+        'CONN_MAX_AGE': 600,
     }
 }
 # DATABASES = {

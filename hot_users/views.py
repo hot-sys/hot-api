@@ -13,6 +13,8 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_user_service import upload_images, remove_file
+from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
+from django.conf import settings
 
 @extend_schema(
     request=LoginDTO,
@@ -389,9 +391,14 @@ def recover_user(request, idUser):
 def current_user(request):
     try:
         idUser = request.idUser
+        cache_key = generate_cache_key('user-current', idUser=idUser)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, success=True, status_code=200)
         user = User.objects.get(idUser=idUser)
         serializer = UserSerializerResponse(user)
-        return api_response(data=serializer.data)
+        set_cached_data(cache_key, serializer.data, settings.CACHE_TTL)
+        return api_response(data=serializer.data, success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
 
@@ -418,9 +425,14 @@ def current_user(request):
 @checkAdmin
 def get_all_users(request):
     try:
+        cache_key = generate_cache_key('users-all')
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, success=True, status_code=200)
         users = User.objects.all()
         serializer = UserSerializerResponse(users, many=True)
-        return api_response(data=serializer.data)
+        set_cached_data(cache_key, serializer.data, settings.CACHE_TTL)
+        return api_response(data=serializer.data, success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(message="Users not found", success=False, status_code=404)
 
@@ -452,9 +464,14 @@ def get_all_users(request):
 @checkUser
 def get_user(request, idUser):
     try:
+        cache_key = generate_cache_key('user-by-id', idUser=idUser)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, success=True, status_code=200)
         user = User.objects.get(idUser=idUser)
         serializer = UserSerializerResponse(user)
-        return api_response(data=serializer.data)
+        set_cached_data(cache_key, serializer.data, settings.CACHE_TTL)
+        return api_response(data=serializer.data, success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
 
