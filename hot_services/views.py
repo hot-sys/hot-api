@@ -17,11 +17,52 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
 from django.conf import settings
+from django.db.models import Count
+
+# STAT API
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Stat Service"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Get stat service",
+    summary="Get stat service",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def stat(request):
+    try:
+        cache_key = generate_cache_key('stat-service')
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Stat Service", success=True, status_code=200)
+        totalService = Service.objects.count()
+        services_with_item_count = Service.objects.annotate(total_items=Count('serviceitem')).values('idService', 'name', 'total_items')
+        data = {
+            "totalServices": totalService,
+            "services": list(services_with_item_count)
+        }
+        set_cached_data(cache_key, data, timeout=settings.CACHE_TTL)
+        return api_response(data=data, message="Stat Service", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
 
 # COMMANDE SERVICE ITEMS API
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
-
 @extend_schema(
     request= CreateCommandeServiceDTO,
     responses={

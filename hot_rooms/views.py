@@ -52,10 +52,10 @@ def stat(request):
         data = get_cached_data(cache_key)
         if data is not None:
             return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
-        totalRoom = Room.objects.all().count()
+        totalRoom = Room.objects.count()
         totalRoomAvailable = Room.objects.filter(available=True).count()
         totalRoomUnavailable = Room.objects.filter(available=False).count()
-        totalCommande = CommandeRoom.objects.all().count()
+        totalCommande = CommandeRoom.objects.count()
         totalCommandeReserved = CommandeRoom.objects.filter(idStatus=1).count()
         totalCommandeCanceled = CommandeRoom.objects.filter(idStatus=2).count()
         totalCommandeConfirmed = CommandeRoom.objects.filter(idStatus=3).count()

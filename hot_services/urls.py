@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import create_status, get_all_status, confirmeCommande, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
+from .views import create_status, stat, get_all_status, confirmeCommande, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
 
 urlpatterns = [
+    path('stat', stat, name='stat'),
     path('create', create_service, name='create_service'),
     path('all', get_all_service, name='get_all_service'),
     path('get/<int:idService>', get_by_id_service, name='get_by_id_service'),
