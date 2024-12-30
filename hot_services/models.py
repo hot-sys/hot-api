@@ -4,7 +4,7 @@ from hot_clients.models import Client
 
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(deletedAt=None)
+        return super().get_queryset().filter(deletedAt__isnull=True)
 
 class AllManager(models.Manager):
     def get_queryset(self):

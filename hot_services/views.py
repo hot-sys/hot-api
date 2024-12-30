@@ -17,7 +17,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, Q
 
 # STAT API
 # --------------------------------------------------------------------------------
@@ -49,8 +49,10 @@ def stat(request):
         cached_data = get_cached_data(cache_key)
         if cached_data:
             return api_response(data=cached_data, message="Stat Service", success=True, status_code=200)
-        totalService = Service.objects.count()
-        services_with_item_count = Service.objects.annotate(total_items=Count('serviceitem')).values('idService', 'name', 'total_items')
+        totalService = Service.objects.all().count()
+        services_with_item_count = Service.objects.annotate(
+            total_items=Count('serviceitem', filter=Q(serviceitem__deletedAt__isnull=True))
+        ).values('idService', 'name', 'total_items')
         data = {
             "totalServices": totalService,
             "services": list(services_with_item_count)
