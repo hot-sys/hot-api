@@ -6,6 +6,7 @@ from .serializers import CreateUserSerializer, UserSerializerResponse, RoleSeria
 from utils.api_response import api_response
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
@@ -212,15 +213,15 @@ def update_current_user(request):
 )
 @api_view(['PATCH'])
 @authentication_classes([TokenAuthentication])
-# @token_required
-# @checkUser
-# @checkAdmin
+@token_required
+@checkUser
+@checkAdmin
 def update_admin_user(request, idUser):
     data = request.data
     dto = UpdateUserDto(data=data)
-    # current_user = request.idUser
-    # if current_user == idUser:
-    #     return api_response(message="Update other account available", success=False, status_code=403)
+    current_user = request.idUser
+    if current_user == idUser:
+        return api_response(message="Update other account available", success=False, status_code=403)
     if dto.is_valid():
         validated_data = dto.validated_data
         try:
@@ -419,19 +420,37 @@ def current_user(request):
 )
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
-# @token_required
-# @checkUser
-# @checkAdmin
+@token_required
+@checkUser
+@checkAdmin
 def get_all_users(request):
     try:
-        cache_key = generate_cache_key('users-all')
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('users-all', page=page, limit=limit)
         cached_data = get_cached_data(cache_key)
         if cached_data:
             return api_response(data=cached_data, success=True, status_code=200)
         users = User.objects.all()
-        serializer = UserSerializerResponse(users, many=True)
-        set_cached_data(cache_key, serializer.data, settings.CACHE_TTL)
-        return api_response(data=serializer.data, success=True, status_code=200)
+        paginator = Paginator(users, limit)
+        try:
+            users_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            users_paginated = paginator.page(1)
+        except EmptyPage:
+            users_paginated = []
+        serializer = UserSerializerResponse(users_paginated, many=True)
+        data_paginated = {
+            'users': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': users_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, settings.CACHE_TTL)
+        return api_response(data=data_paginated, success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(message="Users not found", success=False, status_code=404)
 

@@ -140,6 +140,63 @@ def get_all_history_user(request):
         return api_response(data=data_paginated, message="History list user", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="History list user"),
+        500: OpenApiResponse(description="Internal server error"),
+    },
+    description="Get all history transaction by user",
+    summary="Get all history transaction by user",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idUser',
+            required=True,
+            type=int,
+            location=OpenApiParameter.QUERY
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def get_all_history_by_user(request, idUser):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('history-user', idUser=idUser, page=page, limit=limit)
+        cache_date = get_cached_data(cache_key)
+        if cache_date:
+            return api_response(data=cache_date, message="History list user", success=True, status_code=200)
+        history = Historique.objects.filter(idAdmin=idUser)
+        paginator = Paginator(history, limit)
+        try:
+            history_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            history_paginated = paginator.page(1)
+        except EmptyPage:
+            history_paginated = []
+        serializer = HistoriqueSerializer(history_paginated, many=True)
+        data_paginated = {
+            'history': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': history_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="History list user", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
 
 @extend_schema(
     request=typeHistoriqueSerializer,
