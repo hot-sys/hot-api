@@ -1,9 +1,10 @@
 from django.urls import path
-from .views import create, update_current_user, upload_current, update_admin_user, update_poste, update_role, delete_user, recover_user, create_role, login, current_user, get_role, get_all_roles, get_all_users, get_user
+from .views import create, update_current_user, checkCurrentPass, upload_current, update_admin_user, update_poste, update_role, delete_user, recover_user, create_role, login, current_user, get_role, get_all_roles, get_all_users, get_user
 
 
 urlpatterns = [
     path('login/', login, name='login'),
+    path('checkPass/', checkCurrentPass, name='checkCurrentPass'),
     path('current/', current_user, name='current_user'),
     path('create/', create, name='create'),
     path('update_current/', update_current_user, name='update_current_user'),

@@ -45,7 +45,6 @@ from django.conf import settings
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def stat(request):
     try:
         cache_key = generate_cache_key('room-stat')
@@ -99,7 +98,6 @@ def stat(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def commande(request):
     data = request.data
     dto = CreateCommandeDTO(data=data)
@@ -127,7 +125,7 @@ def commande(request):
             if validated_data['idStatus'] == 3:
                 room = Room.objects.get(idRoom=validated_data['idRoom'])
                 room.available = False
-                room.dateAvailable = validated_data['DateEnd'] + timedelta(hours=5)
+                room.dateAvailable = validated_data['DateEnd'] + timedelta(days=1, hours=8)
                 room.save()
             try:
                 admin = User.objects.get(idUser=idAdmin)
@@ -213,7 +211,6 @@ def reserved(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def simulate_commande(request):
     data = request.data
     dto = CreateCommandeDTO(data=data)
@@ -263,7 +260,6 @@ def simulate_commande(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def confirmeCommande(request, idCommande):
     try:
         commande = CommandeRoom.objects.get(idCommande=idCommande)
@@ -310,7 +306,6 @@ def confirmeCommande(request, idCommande):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_commande(request):
     try:
         page = int(request.GET.get('page', 1))
@@ -344,7 +339,6 @@ def get_commande(request):
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
-
 @extend_schema(
     responses={
         200: OpenApiResponse(description="All commande reserved room"),
@@ -365,7 +359,6 @@ def get_commande(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_commande_reserved(request):
     try:
         page = int(request.GET.get('page', 1))
@@ -419,7 +412,6 @@ def get_commande_reserved(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_all_commande(request):
     try:
         cache_key = generate_cache_key('commande-all')
@@ -472,7 +464,6 @@ def get_all_commande(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_commande_by_id(request, idCommande):
     try:
         cache_key = generate_cache_key('commande-ById', idCommande=idCommande)
@@ -487,7 +478,6 @@ def get_commande_by_id(request, idCommande):
         return api_response(data=None, message="Commande not found", success=False, status_code=404)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
-
 
 @extend_schema(
     request="query",
@@ -510,7 +500,6 @@ def get_commande_by_id(request, idCommande):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def filter_commande(request):
     try:
         filter_params = request.data.get('filters', {})
@@ -1160,7 +1149,6 @@ def update_by_admin(request, idRoom):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def free_room(request, idRoom):
     try:
         room = Room.objects.get(idRoom=idRoom)

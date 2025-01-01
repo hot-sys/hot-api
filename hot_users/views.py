@@ -58,7 +58,7 @@ def login(request):
                 }
                 access_token = jwt.encode(access_payload, settings.TOKEN_KEY, algorithm='HS256')
                 refresh_token = jwt.encode(refresh_payload, settings.TOKEN_KEY, algorithm='HS256')
-                return api_response(data={"access_token": access_token, "refresh_token": refresh_token}, message="Login successful")
+                return api_response(data={"access_token": access_token, "refresh_token": refresh_token}, message="Login successful", success=True, status_code=200)
         except User.DoesNotExist:
             return api_response(message="User not found", success=False, status_code=404)
         return api_response(message="Invalid credentials", success=False, status_code=400)
@@ -95,7 +95,8 @@ def create(request):
         serializer = CreateUserSerializer(data=validated_data)
         if serializer.is_valid():
             serializer.save()
-            return api_response(data=serializer.data, message="User registered successfully")
+            delete_cache_by_prefix('users-')
+            return api_response(data=serializer.data, message="User registered successfully", success=True, status_code=201)
         return api_response(data=serializer.errors, message="Invalid user data", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
@@ -138,11 +139,49 @@ def upload_current(request):
         for url in urls:
             user.image = url
             user.save()
+        delete_cache_by_prefix('users-')
         return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(data=None, message="User not found", success=False, status_code=404)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    request="password",
+    responses={
+        200: OpenApiResponse(description='Current password is valid'),
+        400: OpenApiResponse(description='Current password is required'),
+        404: OpenApiResponse(description='User not found'),
+        409: OpenApiResponse(description='Invalid current password')
+    },
+    description="Endpoint to check if the current password provided by the user is valid. Requires password.",
+    summary="Check current password",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def checkCurrentPass(request):
+    data = request.data
+    if 'currentPassword' not in data:
+        return api_response(message="Current password is required", success=False, status_code=400)
+    current_password = data['currentPassword']
+    idUser = request.idUser
+    try:
+        user = User.objects.get(idUser=idUser)
+        if not check_password(current_password, user.password):
+            return api_response(message="Invalid current password", success=False, status_code=409)
+        return api_response(message="Current password is valid", success=True, status_code=200)
+    except User.DoesNotExist:
+        return api_response(message="User not found", success=False, status_code=404)
 
 @extend_schema(
     request=UpdateUserDto,
@@ -181,7 +220,8 @@ def update_current_user(request):
                 setattr(user, key, value)
             user.save()
             serializer = UserSerializerResponse(user)
-            return api_response(data=serializer.data, message="User updated successfully")
+            delete_cache_by_prefix('users-')
+            return api_response(data=serializer.data, message="User updated successfully", success=True, status_code=200)
         except User.DoesNotExist:
             return api_response(message="User not found", success=False, status_code=404)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
@@ -233,7 +273,8 @@ def update_admin_user(request, idUser):
                 setattr(user, key, value)
             user.save()
             serializer = UserSerializerResponse(user)
-            return api_response(data=serializer.data, message="User updated successfully")
+            delete_cache_by_prefix('users-')
+            return api_response(data=serializer.data, message="User updated successfully", success=True, status_code=200)
         except User.DoesNotExist:
             return api_response(message="User not found", success=False, status_code=404)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
@@ -278,11 +319,11 @@ def update_poste(request, idUser):
             user = User.objects.get(idUser=idUser)
             if data["idRole"] == UserSerializerResponse(user).data["idRole"]:
                 return api_response(message="User already have this poste", success=False, status_code=400)
-
             user.idRole = dto.validated_data["idRole"]
             user.save()
             serializer = UserSerializerResponse(user)
-            return api_response(data=serializer.data, message="User poste updated successfully")
+            delete_cache_by_prefix('users-')
+            return api_response(data=serializer.data, message="User poste updated successfully", success=True, status_code=200)
         return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
@@ -322,7 +363,8 @@ def delete_user(request, idUser):
         user = User.objects.get(idUser=idUser)
         user.deletedAt = datetime.now()
         user.save()
-        return api_response(message="User deleted successfully")
+        delete_cache_by_prefix('users-')
+        return api_response(message="User deleted successfully", success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
 
@@ -364,7 +406,8 @@ def recover_user(request, idUser):
             return api_response(message="User already active", success=False, status_code=400)
         user.deletedAt = None
         user.save()
-        return api_response(message="User recovered successfully")
+        delete_cache_by_prefix('users-')
+        return api_response(message="User recovered successfully", success=True, status_code=200)
     except User.DoesNotExist:
         return api_response(message="User not found", success=False, status_code=404)
 
@@ -391,7 +434,7 @@ def recover_user(request, idUser):
 def current_user(request):
     try:
         idUser = request.idUser
-        cache_key = generate_cache_key('user-current', idUser=idUser)
+        cache_key = generate_cache_key('users-current', idUser=idUser)
         cached_data = get_cached_data(cache_key)
         if cached_data:
             return api_response(data=cached_data, success=True, status_code=200)
@@ -482,7 +525,7 @@ def get_all_users(request):
 @checkUser
 def get_user(request, idUser):
     try:
-        cache_key = generate_cache_key('user-by-id', idUser=idUser)
+        cache_key = generate_cache_key('users-by-id', idUser=idUser)
         cached_data = get_cached_data(cache_key)
         if cached_data:
             return api_response(data=cached_data, success=True, status_code=200)
