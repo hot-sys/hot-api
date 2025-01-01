@@ -17,11 +17,53 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
 from django.conf import settings
+from django.db.models import Count, Q
+
+# STAT API
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Stat Service"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Get stat service",
+    summary="Get stat service",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def stat(request):
+    try:
+        cache_key = generate_cache_key('stat-service')
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Stat Service", success=True, status_code=200)
+        totalService = Service.objects.all().count()
+        services_with_item_count = Service.objects.annotate(
+            total_items=Count('serviceitem', filter=Q(serviceitem__deletedAt__isnull=True))
+        ).values('idService', 'name', 'total_items')
+        data = {
+            "totalServices": totalService,
+            "services": list(services_with_item_count)
+        }
+        set_cached_data(cache_key, data, timeout=settings.CACHE_TTL)
+        return api_response(data=data, message="Stat Service", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
 
 # COMMANDE SERVICE ITEMS API
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
-
 @extend_schema(
     request= CreateCommandeServiceDTO,
     responses={
@@ -44,7 +86,6 @@ from django.conf import settings
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def create_commande(request):
     data = request.data
     dto = CreateCommandeServiceDTO(data=data)
@@ -100,7 +141,6 @@ def create_commande(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def simulate(request):
     data = request.data
     dto = CreateCommandeServiceDTO(data=data)
@@ -150,7 +190,6 @@ def simulate(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def confirmeCommande(request, idCommande):
     try:
         commande = CommandeService.objects.get(idCommande=idCommande)
@@ -193,7 +232,6 @@ def confirmeCommande(request, idCommande):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_all_commande(request):
     try:
         page = int(request.GET.get('page', 1))
@@ -254,7 +292,6 @@ def get_all_commande(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_commande_item(request, idCommande):
     try:
         cache_key = generate_cache_key('comservice-commmande-item', idCommande=idCommande)
@@ -291,7 +328,6 @@ def get_commande_item(request, idCommande):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def filter_commande(request):
     try:
         filter_params = request.data.get('filters', {})
@@ -674,7 +710,6 @@ def update_item_service(request, idItem):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_all_service_item(request, idService):
     try:
         page = int(request.GET.get('page', 1))
@@ -740,7 +775,6 @@ def get_all_service_item(request, idService):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_detail_item(request, idItem):
     try:
         cache_key = generate_cache_key('service-item-withpaginate', idItem=idItem)
@@ -952,7 +986,6 @@ def recover_service(request, idService):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_all_service(request):
     try:
         page = int(request.GET.get('page', 1))
@@ -1012,7 +1045,6 @@ def get_all_service(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_by_id_service(request, idService):
     try:
         cache_key = generate_cache_key('serviceself-detail', idService=idService)
@@ -1118,7 +1150,6 @@ def update_status(request, idStatus):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_all_status(request):
     try:
         status = Status.objects.all()
@@ -1153,7 +1184,6 @@ def get_all_status(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_by_id_status(request, idStatus):
     try:
         status = Status.objects.get(idStatus=idStatus)

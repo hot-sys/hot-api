@@ -4,7 +4,7 @@ from hot_clients.models import Client
 
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(deletedAt=None)
+        return super().get_queryset().filter(deletedAt__isnull=True)
 
 class AllManager(models.Manager):
     def get_queryset(self):
@@ -13,7 +13,7 @@ class AllManager(models.Manager):
 class Status(models.Model):
     idStatus = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
-    # 1: Reserved, 2: Confirmed, 3: Canceled, 4: Finished
+    # 1: Reserved, 2: Canceled, 3: Confirmed, 4: Pending
     def __str__(self):
         return self.name
 

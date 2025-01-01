@@ -3,11 +3,9 @@ from .models import typeHistorique, Historique
 from hot_users.models import User
 from hot_rooms.models import CommandeRoom
 from hot_services.models import CommandeService
-
-class HistoriqueSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Historique
-        fields = 'idHistorique', 'idAdmin', 'idType', 'idCommandeRoom', 'idCommandeService', 'description', 'createdAt'
+from hot_rooms.serializers import CommandeRoomSerializer
+from hot_services.serializers import CommandeServiceSerializer
+from hot_users.serializers import UserSerializerResponse
 
 class typeHistoriqueSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,6 +16,15 @@ class typeHistoriqueSerializer(serializers.ModelSerializer):
         if typeHistorique.objects.filter(name=value).exists():
             raise serializers.ValidationError("Type already exists")
         return value
+
+class HistoriqueSerializer(serializers.ModelSerializer):
+    idType = typeHistoriqueSerializer()
+    idAdmin = UserSerializerResponse()
+    idCommandeRoom = CommandeRoomSerializer()
+    idCommandeService = CommandeServiceSerializer()
+    class Meta:
+        model = Historique
+        fields = 'idHistorique', 'idAdmin', 'idType', 'idCommandeRoom', 'idCommandeService', 'description', 'createdAt'
 
 class CreateHistoriqueDTO(serializers.Serializer):
     idAdmin = serializers.IntegerField()
