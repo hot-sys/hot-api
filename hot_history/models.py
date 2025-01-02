@@ -1,6 +1,6 @@
 from django.db import models
 from hot_users.models import User
-from hot_rooms.models import CommandeRoom
+from hot_rooms.models import CommandeRoom, Room
 from hot_services.models import CommandeService
 
 class typeHistorique(models.Model):
@@ -24,3 +24,13 @@ class Historique(models.Model):
 
     def __str__(self):
         return f"Historique {self.idHistorique}"
+
+class HistoryRoom(models.Model):
+    idHistory = models.AutoField(primary_key=True)
+    idRoom = models.ForeignKey(Room, on_delete=models.CASCADE)
+    idAdmin = models.ForeignKey(User, on_delete=models.CASCADE)
+    description = models.TextField(blank=True, null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"HistoryRoom {self.idHistory}"

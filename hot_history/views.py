@@ -5,9 +5,11 @@ from utils.api_response import api_response
 from rest_framework.authentication import TokenAuthentication
 from hot_users.decorators.checkUser import checkUser
 from hot_users.decorators.checkAdmin import checkAdmin
+from hot_users.models import User
+from hot_rooms.models import Room
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from .models import typeHistorique, Historique
-from .serializers import typeHistoriqueSerializer, HistoriqueSerializer, CreateHistoriqueDTO
+from .models import typeHistorique, Historique, HistoryRoom
+from .serializers import typeHistoriqueSerializer, HistoriqueSerializer, CreateHistoriqueDTO, HistoryRoomSerializer
 from django.db import transaction
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from datetime import datetime, timedelta
@@ -31,9 +33,92 @@ def create_history(idAdmin, idType, idCommande, description):
                 idCommandeService=idCommande,
                 description=description
             )
+        delete_cache_by_prefix('history-')
         return True
     except typeHistorique.DoesNotExist:
         return False
+
+def create_history_room(idRoom, idAdmin, description):
+    try:
+        try:
+            room = Room.objects.get(idRoom=idRoom)
+            try:
+                admin = User.objects.get(idUser=idAdmin)
+            except User.DoesNotExist:
+                False
+        except Room.DoesNotExist:
+            False
+        HistoryRoom.objects.create(
+            idRoom=room,
+            idAdmin=admin,
+            description=description
+        )
+        delete_cache_by_prefix('history-')
+        return True
+    except Exception as e:
+        return False
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="History room list"),
+        404: OpenApiResponse(description="Room not found"),
+        500: OpenApiResponse(description="Internal server error"),
+    },
+    description="Get history transaction by room",
+    summary="Get history transaction by room",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.QUERY
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_history_room(request, idRoom):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('history-room-get', idRoom=idRoom, page=page, limit=limit)
+        cache_date = get_cached_data(cache_key)
+        if cache_date:
+            return api_response(data=cache_date, message="History room list", success=True, status_code=200)
+        try:
+            room = Room.objects.get(idRoom=idRoom)
+        except Room.DoesNotExist:
+            return api_response(message="Room not found", success=False, status_code=404)
+        history = HistoryRoom.objects.filter(idRoom=room).order_by('-createdAt')
+        paginator = Paginator(history, limit)
+        try:
+            history_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            history_paginated = paginator.page(1)
+        except EmptyPage:
+            history_paginated = []
+        serializer = HistoryRoomSerializer(history_paginated, many=True)
+        data_paginated = {
+            'history': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': history_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="History room list", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
 
 @extend_schema(
     responses={
@@ -60,12 +145,12 @@ def get_all_history(request):
     try:
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        cache_key = generate_cache_key('history-getall', page, limit)
+        cache_key = generate_cache_key('history-getall', page=page, limit=limit)
         cache_date = get_cached_data(cache_key)
         if cache_date:
             return api_response(data=cache_date, message="History list", success=True, status_code=200)
 
-        history = Historique.objects.all()
+        history = Historique.objects.all().order_by('-createdAt')
         paginator = Paginator(history, limit)
         try:
             history_paginated = paginator.page(page)
@@ -118,7 +203,7 @@ def get_all_history_user(request):
         cache_date = get_cached_data(cache_key)
         if cache_date:
             return api_response(data=cache_date, message="History list user", success=True, status_code=200)
-        history = Historique.objects.filter(idAdmin=idUser)
+        history = Historique.objects.filter(idAdmin=idUser).order_by('-createdAt')
         paginator = Paginator(history, limit)
         try:
             history_paginated = paginator.page(page)
@@ -175,7 +260,7 @@ def get_all_history_by_user(request, idUser):
         cache_date = get_cached_data(cache_key)
         if cache_date:
             return api_response(data=cache_date, message="History list user", success=True, status_code=200)
-        history = Historique.objects.filter(idAdmin=idUser)
+        history = Historique.objects.filter(idAdmin=idUser).order_by('-createdAt')
         paginator = Paginator(history, limit)
         try:
             history_paginated = paginator.page(page)

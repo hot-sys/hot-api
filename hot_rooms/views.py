@@ -15,7 +15,7 @@ from django.db import transaction
 from datetime import datetime, timedelta
 from utils.services.supabase_room_service import upload_images, remove_file
 from django.db.models import Q
-from hot_history.views import create_history
+from hot_history.views import create_history, create_history_room
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
 from django.conf import settings
 
@@ -130,6 +130,7 @@ def commande(request):
             try:
                 admin = User.objects.get(idUser=idAdmin)
                 create_history(admin, 1, commande, "Commande created")
+                create_history_room(validated_data['idRoom'], idAdmin, "Commande created")
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
             serializer = CommandeRoomSerializer(commande)
@@ -182,6 +183,7 @@ def reserved(request):
                     total=total
                 )
                 serializer = CommandeRoomSerializer(commande)
+            create_history_room(validated_data['idRoom'], idUser, "Commande reserved")
             list_cached_keys_by_prefix("commande-")
             delete_cache_by_prefix("commande-")
             return api_response(data=serializer.data, message="Commande reserved successfully", success=True, status_code=200)
@@ -262,6 +264,7 @@ def simulate_commande(request):
 @checkUser
 def confirmeCommande(request, idCommande):
     try:
+        idUser = request.idUser
         commande = CommandeRoom.objects.get(idCommande=idCommande)
         if commande.idStatus_id == 3:
             return api_response(data=None, message="Commande already confirmed", success=False, status_code=400)
@@ -278,6 +281,7 @@ def confirmeCommande(request, idCommande):
             create_history(admin, 1, commande, "Commande confirmed")
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
+        create_history_room(commande.idRoom_id, idUser, "Commande reserved")
         list_cached_keys_by_prefix("commande-")
         delete_cache_by_prefix("commande-")
         return api_response(data=serializer.data, message="Commande confirmed successfully", success=True, status_code=200)
@@ -572,6 +576,9 @@ def create(request):
                     info=dto.validated_data.get('info')
                 )
                 serializer = RoomSerializer(room)
+            idUser = request.idUser
+            idRoom = room.idRoom
+            create_history_room(idRoom, idUser, "Room created")
             list_cached_keys_by_prefix("room-")
             delete_cache_by_prefix("room-")
             return api_response(message="Create room successfully" ,data=serializer.data, success=True, status_code=200)
@@ -619,6 +626,8 @@ def createimage(request, idRoom):
         urls = upload_images(files)
         for url in urls:
             RoomImage.objects.create(idRoom=room, image=url)
+        idUser = request.idUser
+        create_history_room(idRoom, idUser, "Room images uploaded")
         list_cached_keys_by_prefix("room-")
         delete_cache_by_prefix("room-")
         return api_response(data=urls, message="Images uploaded successfully", success=True, status_code=200)
@@ -660,6 +669,8 @@ def delete_image(request, idImage):
         image = RoomImage.objects.get(idImage=idImage)
         result = remove_file(image.image)
         image.delete()
+        idUser = request.idUser
+        create_history_room(image.idRoom, idUser, "Room image deleted")
         list_cached_keys_by_prefix("room-")
         delete_cache_by_prefix("room-")
         return api_response(data=result, message="Image deleted successfully", success=True, status_code=200)
@@ -1115,6 +1126,10 @@ def update_by_admin(request, idRoom):
                 setattr(room, key, value)
             room.save()
             serializer = RoomResponseSerializer(room)
+
+            idUser = request.idUser
+            create_history_room(room.idRoom, idUser, "Room updated")
+
             list_cached_keys_by_prefix("room-")
             delete_cache_by_prefix("room-")
             return api_response(data=serializer.data, message="Room updated successfully", success=True, status_code=200)
@@ -1155,6 +1170,10 @@ def free_room(request, idRoom):
         room.available = True
         room.dateAvailable = None
         room.save()
+
+        idUser = request.idUser
+        create_history_room(room.idRoom, idUser, "Room freed")
+
         list_cached_keys_by_prefix("room-")
         delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room freed successfully", success=True, status_code=200)
@@ -1198,6 +1217,7 @@ def delete_by_admin(request, idRoom):
             return api_response(data=None, message="You can't delete this room", success=False, status_code=403)
         room.deletedAt = datetime.now()
         room.save()
+        create_history_room(room.idRoom, currentUser, "Room deleted")
         list_cached_keys_by_prefix("room-")
         delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room deleted successfully", success=True, status_code=200)
@@ -1241,6 +1261,7 @@ def recover_by_admin(request, idRoom):
             return api_response(data=None, message="You can't recover this room", success=False, status_code=403)
         room.deletedAt = None
         room.save()
+        create_history_room(room.idRoom, currentUser, "Room recovered")
         list_cached_keys_by_prefix("room-")
         delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room recovered successfully", success=True, status_code=200)
