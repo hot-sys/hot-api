@@ -766,6 +766,60 @@ def all(request):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="Deleted rooms"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all deleted rooms",
+    summary="Get deleted rooms",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+@checkAdmin
+def deleted(request):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+
+        cache_key = generate_cache_key('room-deleted', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Deleted rooms", success=True, status_code=200)
+        deleted_rooms = Room.all_objects.filter(deletedAt__isnull=False)
+        paginator = Paginator(deleted_rooms, limit)
+        try:
+            rooms_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            rooms_paginated = paginator.page(1)
+        except EmptyPage:
+            rooms_paginated = []
+
+        serializer = RoomResponseSerializer(rooms_paginated, many=True)
+        data_paginated = {
+            'rooms': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': rooms_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="Deleted rooms", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="All images"),
         500: OpenApiResponse(description="Internal server error")
     },
@@ -1216,8 +1270,8 @@ def delete_by_admin(request, idRoom):
         if room.idAdmin_id!= currentUser:
             return api_response(data=None, message="You can't delete this room", success=False, status_code=403)
         room.deletedAt = datetime.now()
-        room.save()
         create_history_room(room.idRoom, currentUser, "Room deleted")
+        room.save()
         list_cached_keys_by_prefix("room-")
         delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room deleted successfully", success=True, status_code=200)
