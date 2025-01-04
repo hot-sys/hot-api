@@ -67,7 +67,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"login\": \"admin\",\r\n    \"password\": \"admin1234\"\r\n}",
+									"raw": "{\r\n    \"login\": \"admin\",\r\n    \"password\": \"Admin1234\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -332,7 +332,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"name\": \"Confirmed\"\r\n}",
+									"raw": "{\r\n    \"name\": \"Pending\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -440,6 +440,34 @@
 											"key": "limit",
 											"value": "5"
 										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get stat",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/services/stat",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"services",
+										"stat"
 									]
 								}
 							},
@@ -827,13 +855,23 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/users/list",
+									"raw": "{{base_url}}/users/list?page=1&limit=10",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"users",
 										"list"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
 									]
 								}
 							},
@@ -1128,6 +1166,56 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Check pass",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"currentPassword\": \"admin1234\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/users/checkPass/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"users",
+										"checkPass",
+										""
+									]
+								}
+							},
+							"response": []
 						}
 					]
 				},
@@ -1171,14 +1259,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/users/delete/2",
+									"raw": "{{base_url}}/users/delete/6",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"users",
 										"delete",
-										"2"
+										"6"
 									]
 								}
 							},
@@ -1282,6 +1370,72 @@
 											"key": "limit",
 											"value": "10"
 										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get all deleted",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/deleted?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"deleted"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get stat",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/stat",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"stat"
 									]
 								}
 							},
@@ -1446,21 +1600,21 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/get/3",
+									"raw": "{{base_url}}/rooms/get/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"rooms",
 										"get",
-										"3"
+										"1"
 									]
 								}
 							},
 							"response": []
 						},
 						{
-							"name": "Get stat",
+							"name": "Get client in room unavailable",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1475,13 +1629,14 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/stat",
+									"raw": "{{base_url}}/rooms/client/2",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"rooms",
-										"stat"
+										"client",
+										"2"
 									]
 								}
 							},
@@ -1689,14 +1844,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/rooms/recover/2",
+									"raw": "{{base_url}}/rooms/recover/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"rooms",
 										"recover",
-										"2"
+										"1"
 									]
 								}
 							},
@@ -1736,7 +1891,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"price\": 4000\r\n}",
+									"raw": "{\r\n    \"title\": \"Émeraude\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1849,14 +2004,14 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/rooms/delete/2",
+									"raw": "{{base_url}}/rooms/delete/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"rooms",
 										"delete",
-										"2"
+										"1"
 									]
 								}
 							},
@@ -2230,6 +2385,102 @@
 									"path": [
 										"history",
 										"all"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get all history room",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/history/room/1?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"history",
+										"room",
+										"1"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get all historique Current user",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/history/user",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"history",
+										"user"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get all historique by user",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/history/byuser/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"history",
+										"byuser",
+										"1"
 									]
 								}
 							},
@@ -2638,7 +2889,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/commande/all?page=2&limit=10",
+									"raw": "{{base_url}}/rooms/commande/all?page=1&limit=10",
 									"host": [
 										"{{base_url}}"
 									],
@@ -2650,7 +2901,7 @@
 									"query": [
 										{
 											"key": "page",
-											"value": "2"
+											"value": "1"
 										},
 										{
 											"key": "limit",

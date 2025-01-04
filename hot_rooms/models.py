@@ -59,10 +59,10 @@ class RoomImage(models.Model):
 
 class CommandeRoom(models.Model):
     idCommande = models.AutoField(primary_key=True)
-    idRoom = models.ForeignKey(Room, on_delete=models.CASCADE)
-    idClient = models.ForeignKey(Client, on_delete=models.CASCADE)
+    idRoom = models.ForeignKey(Room, on_delete=models.CASCADE, null=True)
+    idClient = models.ForeignKey(Client, on_delete=models.CASCADE, null=True)
     idAdmin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    idStatus = models.ForeignKey(Status, on_delete=models.CASCADE)
+    idStatus = models.ForeignKey(Status, on_delete=models.CASCADE, null=True)
     DateStart = models.DateTimeField()
     DateEnd = models.DateTimeField()
     price = models.IntegerField(default=0)

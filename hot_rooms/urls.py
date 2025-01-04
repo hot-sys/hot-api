@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import all, stat, get_room, deleted, commande, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
+from .views import all, stat, get_room, deleted, commande, truncate, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
 
 urlpatterns = [
     path('all', all, name='all'),
     path('deleted', deleted, name='deleted'),
     path('stat', stat, name='stat'),
+    path('commande/truncate', truncate, name='truncate'),
     path('commande/create', commande, name='commande'),
     path('commande/reserved', reserved, name='reserved'),
     path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),

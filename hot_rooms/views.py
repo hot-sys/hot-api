@@ -49,10 +49,10 @@ from hot_clients.serializers import ClientSerializer
 @checkUser
 def stat(request):
     try:
-        cache_key = generate_cache_key('room-stat')
-        data = get_cached_data(cache_key)
-        if data is not None:
-            return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
+        # cache_key = generate_cache_key('room-stat')
+        # data = get_cached_data(cache_key)
+        # if data is not None:
+        #     return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
 
         rooms = Room.objects.all()
         totalRoom = rooms.count()
@@ -75,7 +75,7 @@ def stat(request):
             'totalCommandePending': totalCommandePending
         }
 
-        set_cached_data(cache_key, data, settings.CACHE_TTL)
+        # set_cached_data(cache_key, data, settings.CACHE_TTL)
         return api_response(data=data, message="Stat retrieved successfully", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -83,6 +83,39 @@ def stat(request):
 # COMMAND API
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande truncated successfully"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Truncate all commandes",
+    summary="Truncate commandes",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def truncate(request):
+    try:
+        with transaction.atomic():
+            CommandeRoom.objects.all().update(
+                idRoom=None, idClient=None, idAdmin=None, idStatus=None
+            )
+            CommandeRoom.objects.all().delete()
+        delete_cache_by_prefix('commande-')
+        return api_response(data=None, message="Commande truncated successfully", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
 @extend_schema(
     request=CreateCommandeDTO,
     responses={
@@ -806,6 +839,10 @@ def all(request):
 @checkUser
 def get_client_room_not_available(request, idRoom):
     try:
+        cache_key = generate_cache_key('room-client-unavailable', idRoom=idRoom)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Client for this room", success=True, status_code=200)
         room = Room.objects.get(idRoom=idRoom)
         if room.available:
             return api_response(data=None, message="Room is available", success=False, status_code=400)
@@ -819,9 +856,11 @@ def get_client_room_not_available(request, idRoom):
             commandes_data = [
                 {
                     "Client": ClientSerializer(commande.idClient).data,
+                    "Commande": CommandeRoomSerializer(commande).data
                 }
                 for commande in commandes
             ]
+            set_cached_data(cache_key, commandes_data, timeout=settings.CACHE_TTL)
             return api_response(data=commandes_data, message="Client for this room", success=True, status_code=200)
         except CommandeRoom.DoesNotExist:
             return api_response(data=None, message="Commande not found", success=False, status_code=404)
