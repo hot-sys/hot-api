@@ -13,11 +13,13 @@ from .serializers import CommandeRoomSerializer, RoomSerializer, RoomImageSerial
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from datetime import datetime, timedelta
+from django.utils.timezone import now
 from utils.services.supabase_room_service import upload_images, remove_file
 from django.db.models import Q
 from hot_history.views import create_history, create_history_room
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
 from django.conf import settings
+from hot_clients.serializers import ClientSerializer
 
 # STAT API
 # --------------------------------------------------------------------------------
@@ -51,14 +53,17 @@ def stat(request):
         data = get_cached_data(cache_key)
         if data is not None:
             return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
-        totalRoom = Room.objects.all().count()
-        totalRoomAvailable = Room.objects.filter(available=True).count()
-        totalRoomUnavailable = Room.objects.filter(available=False).count()
+
+        rooms = Room.objects.all()
+        totalRoom = rooms.count()
+        totalRoomAvailable = rooms.filter(available=True).count()
+        totalRoomUnavailable = rooms.filter(available=False).count()
         totalCommande = CommandeRoom.objects.all().count()
         totalCommandeReserved = CommandeRoom.objects.filter(idStatus=1).count()
         totalCommandeCanceled = CommandeRoom.objects.filter(idStatus=2).count()
         totalCommandeConfirmed = CommandeRoom.objects.filter(idStatus=3).count()
         totalCommandePending = CommandeRoom.objects.filter(idStatus=4).count()
+
         data = {
             'totalRoom': totalRoom,
             'totalRoomAvailable': totalRoomAvailable,
@@ -69,6 +74,7 @@ def stat(request):
             'totalCommandeCanceled': totalCommandeCanceled,
             'totalCommandePending': totalCommandePending
         }
+
         set_cached_data(cache_key, data, settings.CACHE_TTL)
         return api_response(data=data, message="Stat retrieved successfully", success=True, status_code=200)
     except Exception as e:
@@ -104,13 +110,23 @@ def commande(request):
     if dto.is_valid():
         validated_data = dto.validated_data
         idAdmin = request.idUser
+        try:
+            room = Room.objects.get(idRoom=validated_data['idRoom'])
+        except Room.DoesNotExist:
+            return api_response(data=None, message="Room not found here", success=False, status_code=404)
+
+        overlapping_commandes = CommandeRoom.objects.filter(
+            idRoom=room,
+            DateStart__lt=validated_data['DateEnd'],
+            DateEnd__gt=validated_data['DateStart']
+        )
+        if overlapping_commandes.exists():
+            return api_response(data=None, message="Room is already booked during this period", success=False, status_code=409)
+
         with transaction.atomic():
-            price = Room.objects.get(idRoom=validated_data['idRoom']).price
+            price = room.price
             diffDays = int((validated_data['DateEnd'] - validated_data['DateStart']).days)
-            if diffDays == 0:
-                diffDays = 1
-            else:
-                diffDays += 1
+            diffDays = max(1, diffDays + 1)
             total = price * diffDays
             commande = CommandeRoom.objects.create(
                 idRoom_id=validated_data['idRoom'],
@@ -122,11 +138,6 @@ def commande(request):
                 price=price,
                 total=total
             )
-            if validated_data['idStatus'] == 3:
-                room = Room.objects.get(idRoom=validated_data['idRoom'])
-                room.available = False
-                room.dateAvailable = validated_data['DateEnd'] + timedelta(days=1, hours=8)
-                room.save()
             try:
                 admin = User.objects.get(idUser=idAdmin)
                 create_history(admin, 1, commande, "Commande created")
@@ -137,8 +148,9 @@ def commande(request):
         list_cached_keys_by_prefix("commande-")
         delete_cache_by_prefix("commande-")
         delete_cache_by_prefix("room-")
+        delete_cache_by_prefix("room-stat")
         delete_cache_by_prefix("commande-")
-        return api_response(data=serializer.data, message="Commande created successfully", success=True, status_code=200)
+        return api_response(data=None, message="Commande created successfully", success=True, status_code=200)
     else:
         return api_response(data=None, message=dto.errors, success=False, status_code=400)
 
@@ -763,6 +775,58 @@ def all(request):
         return api_response(data=data_paginated, message="All rooms", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Client for this room"),
+        404: OpenApiResponse(description="Room not found"),
+        404: OpenApiResponse(description="Room is available"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get client for this room",
+    summary="Get client for this room",
+    parameters=[
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        ),
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_client_room_not_available(request, idRoom):
+    try:
+        room = Room.objects.get(idRoom=idRoom)
+        if room.available:
+            return api_response(data=None, message="Room is available", success=False, status_code=400)
+        today = now().date()
+        try:
+            commandes = CommandeRoom.objects.filter(
+                idRoom=room,
+                DateStart__lte=today,
+                DateEnd__gte=today
+            )
+            commandes_data = [
+                {
+                    "Client": ClientSerializer(commande.idClient).data,
+                }
+                for commande in commandes
+            ]
+            return api_response(data=commandes_data, message="Client for this room", success=True, status_code=200)
+        except CommandeRoom.DoesNotExist:
+            return api_response(data=None, message="Commande not found", success=False, status_code=404)
+    except Room.DoesNotExist:
+        return api_response(data=None, message="Room not found", success=False, status_code=404)
 
 @extend_schema(
     responses={

@@ -4,6 +4,8 @@ from hot_clients.models import Client
 from hot_services.models import Status
 from hot_rooms.validators.price import validate_positive
 from django.utils.timezone import now
+from datetime import datetime, timedelta
+
 
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
@@ -41,9 +43,6 @@ class Room(models.Model):
     all_objects = AllRoomManager()
 
     def save(self, *args, **kwargs):
-        if self.dateAvailable and self.dateAvailable < now():
-            self.dateAvailable = None
-            self.available = True
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import all, stat, get_room, deleted, commande, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
+from .views import all, stat, get_room, deleted, commande, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
 
 urlpatterns = [
     path('all', all, name='all'),
@@ -24,6 +24,7 @@ urlpatterns = [
     path('image/<int:idRoom>', image_room, name='image'),
     path('deleteimage/<int:idImage>', delete_image, name='delete_image'),
     path('get/<int:idRoom>', get_room, name='getRoom'),
+    path('client/<int:idRoom>', get_client_room_not_available, name='get_client_room_not_available'),
     path('update/<int:idRoom>', update_by_admin, name='update'),
     path('free/<int:idRoom>', free_room, name='free_room'),
     path('delete/<int:idRoom>', delete_by_admin, name='delete'),
