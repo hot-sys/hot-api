@@ -49,10 +49,10 @@ from hot_clients.serializers import ClientSerializer
 @checkUser
 def stat(request):
     try:
-        # cache_key = generate_cache_key('room-stat')
-        # data = get_cached_data(cache_key)
-        # if data is not None:
-        #     return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
+        cache_key = generate_cache_key('room-stat')
+        data = get_cached_data(cache_key)
+        if data is not None:
+            return api_response(data=data, message="Stat retrieved from cache successfully", success=True, status_code=200)
 
         rooms = Room.objects.all()
         totalRoom = rooms.count()
@@ -75,7 +75,7 @@ def stat(request):
             'totalCommandePending': totalCommandePending
         }
 
-        # set_cached_data(cache_key, data, settings.CACHE_TTL)
+        set_cached_data(cache_key, data, settings.CACHE_TTL)
         return api_response(data=data, message="Stat retrieved successfully", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -178,11 +178,9 @@ def commande(request):
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
             serializer = CommandeRoomSerializer(commande)
-        list_cached_keys_by_prefix("commande-")
         delete_cache_by_prefix("commande-")
         delete_cache_by_prefix("room-")
         delete_cache_by_prefix("room-stat")
-        delete_cache_by_prefix("commande-")
         return api_response(data=None, message="Commande created successfully", success=True, status_code=200)
     else:
         return api_response(data=None, message=dto.errors, success=False, status_code=400)
@@ -215,6 +213,18 @@ def reserved(request):
         idUser = request.idUser
         if dto.is_valid():
             validated_data = dto.validated_data
+            try:
+                room = Room.objects.get(idRoom=validated_data['idRoom'])
+            except Room.DoesNotExist:
+                return api_response(data=None, message="Room not found here", success=False, status_code=404)
+            overlapping_commandes = CommandeRoom.objects.filter(
+                idRoom=room,
+                DateStart__lt=validated_data['DateEnd'],
+                DateEnd__gt=validated_data['DateStart']
+            )
+            if overlapping_commandes.exists():
+                return api_response(data=None, message="Room is already booked during this period", success=False, status_code=409)
+
             with transaction.atomic():
                 price = Room.objects.get(idRoom=validated_data['idRoom']).price
                 total = price * (validated_data['DateEnd'] - validated_data['DateStart']).days
