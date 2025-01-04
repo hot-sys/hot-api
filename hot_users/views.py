@@ -58,7 +58,12 @@ def login(request):
                 }
                 access_token = jwt.encode(access_payload, settings.TOKEN_KEY, algorithm='HS256')
                 refresh_token = jwt.encode(refresh_payload, settings.TOKEN_KEY, algorithm='HS256')
-                return api_response(data={"access_token": access_token, "refresh_token": refresh_token}, message="Login successful", success=True, status_code=200)
+                datalogged = {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    'role': dataRole.data["idRole"],
+                }
+                return api_response(data=datalogged, message="Login successful", success=True, status_code=200)
         except User.DoesNotExist:
             return api_response(message="User not found", success=False, status_code=404)
         return api_response(message="Invalid credentials", success=False, status_code=400)

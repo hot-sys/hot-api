@@ -34,12 +34,12 @@ class UpdateClientDTO(serializers.Serializer):
     adress = serializers.CharField(required=False)
     cin = serializers.CharField(max_length=50, required=False)
 
-    def validate_email(self, value):
-        if Client.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already exists")
-        return value
+    # def validate_email(self, value):
+    #     if Client.objects.filter(email=value).exists():
+    #         raise serializers.ValidationError("Email already exists")
+    #     return value
 
-    def validate_cin(self, value):
-        if Client.objects.filter(cin=value).exists():
-            raise serializers.ValidationError("CIN already exists")
-        return value
+    # def validate_cin(self, value):
+    #     if Client.objects.filter(cin=value).exists():
+    #         raise serializers.ValidationError("CIN already exists")
+    #     return value

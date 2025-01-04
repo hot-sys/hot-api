@@ -34,7 +34,6 @@ from django.conf import settings
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def all(request):
     try:
         page = request.GET.get('page', 1)
@@ -95,7 +94,6 @@ def all(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def get_by_id(request, idClient):
     try:
         cache_key = generate_cache_key('client-getbyid', idClient=idClient)
@@ -253,7 +251,6 @@ def recover(request, idClient):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def search(request):
     data = request.data
     if 'query' in data:
@@ -320,7 +317,6 @@ def search(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-@checkAdmin
 def create(request):
     try:
         data = request.data

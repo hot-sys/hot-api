@@ -1,12 +1,15 @@
 from rest_framework import serializers
 from .models import Room, RoomImage, CommandeRoom
 from hot_users.models import User
+from hot_clients.models import Client
 from hot_users.serializers import UserSerializerResponse
 from hot_services.serializers import StatusSerializer
 from hot_clients.serializers import ClientSerializer
 from hot_services.models import Status
 from utils.api_response import api_response
 from django.utils import timezone
+from datetime import timedelta
+from django.utils.timezone import now
 
 class RoomSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse(read_only=True)
@@ -16,9 +19,44 @@ class RoomSerializer(serializers.ModelSerializer):
 
 class RoomResponseSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse(read_only=True)
+    available = serializers.SerializerMethodField()
+    dateAvailable = serializers.SerializerMethodField()
     class Meta:
         model = Room
         fields = 'idRoom', 'idAdmin', 'title', 'subTitle', 'description', 'price', 'available', 'dateAvailable', 'info', 'createdAt', 'updatedAt'
+
+    def get_available(self, obj):
+        today = now().date()
+        overlapping_commandes = CommandeRoom.objects.filter(
+            idRoom=obj,
+            DateStart__lte=today,
+            DateEnd__gte=today
+        )
+        is_available = not overlapping_commandes.exists()
+
+        if obj.available != is_available:
+            obj.available = is_available
+            obj.save(update_fields=['available'])
+
+        return is_available
+
+    def get_dateAvailable(self, obj):
+        today = now().date()
+        overlapping_commandes = CommandeRoom.objects.filter(
+            idRoom=obj,
+            DateEnd__gte=today
+        ).order_by('DateEnd')
+
+        if overlapping_commandes.exists():
+            next_available_date = overlapping_commandes.first().DateEnd + timedelta(days=1)
+        else:
+            next_available_date = None
+
+        if obj.dateAvailable != next_available_date:
+            obj.dateAvailable = next_available_date
+            obj.save(update_fields=['dateAvailable'])
+
+        return next_available_date
 
 class RoomImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,12 +82,10 @@ class CreateCommandeDTO(serializers.Serializer):
     def validate_idRoom(self, value):
         if not Room.objects.filter(idRoom=value).exists():
             raise serializers.ValidationError("Room not found")
-        if Room.objects.get(idRoom=value).available == False:
-            raise serializers.ValidationError("Room not available")
         return value
 
     def validate_idClient(self, value):
-        if not User.objects.filter(idUser=value).exists():
+        if not Client.objects.filter(idClient=value).exists():
             raise serializers.ValidationError("Client not found")
         return value
 
@@ -114,12 +150,12 @@ class UpdateRoomDTO(serializers.Serializer):
     dateAvailable = serializers.DateTimeField(required=False)
     info = serializers.JSONField(required=False)
 
-    def validate_title(self, value):
-        if Room.objects.filter(title=value).exists():
-            raise serializers.ValidationError("Title already exists")
-        return value
+    # def validate_title(self, value):
+    #     if Room.objects.filter(title=value).exists():
+    #         raise serializers.ValidationError("Title already exists")
+    #     return value
 
-    def validate_dateAvailable(self, value):
-        if value is not None and value < timezone.now():
-            raise serializers.ValidationError("Date available must be greater than the current date")
-        return value
+    # def validate_dateAvailable(self, value):
+    #     if value is not None and value < timezone.now():
+    #         raise serializers.ValidationError("Date available must be greater than the current date")
+    #     return value
