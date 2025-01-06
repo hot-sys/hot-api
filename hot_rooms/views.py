@@ -95,24 +95,30 @@ def paye_room(request, idCommande):
         montant = data['montant']
         try:
             commande = CommandeRoom.objects.get(idCommande=idCommande)
-            if commande.idStatus!= 1:
+            if commande.idStatus_id != 1:
                 return api_response(data=None, message="Commande not reserved", success=False, status_code=400)
             if commande.payed >= commande.total:
                 return api_response(data=None, message="Commande already payed", success=False, status_code=400)
-            if commande.payed == None:
+            if commande.payed == 0:
                 commande.payed = montant
             else:
-                commande.payed += int(commande.payed)
+                diffAmount = commande.total - commande.payed
+                if montant > diffAmount:
+                    return api_response(data=None, message="The amount is greater than the remaining amount", success=False, status_code=400)
+                commande.payed += montant
+            if commande.payed == commande.total:
+                commande.idStatus_id = 3
+                message = "Confirmed Commande : " + str(montant)
+            else:
+                message = "Payed Commande : " + str(montant)
             commande.save()
             try:
                 admin = User.objects.get(idUser=idAdmin)
-                message = "Commande payed : " + str(montant)
                 create_history(admin, 1, commande, message)
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
-
             delete_cache_by_prefix("commande-")
-            return api_response(data=commande.to_dict(), message="Commande payed", success=True, status_code=200)
+            return api_response(data=CommandeRoomSerializer(commande).data, message="Commande payed", success=True, status_code=200)
         except CommandeRoom.DoesNotExist:
             return api_response(data=None, message="Commande not found", success=False, status_code=404)
     else:

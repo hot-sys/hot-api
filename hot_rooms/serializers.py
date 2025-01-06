@@ -44,7 +44,7 @@ class CommandeRoomSerializer(serializers.ModelSerializer):
     idStatus = StatusSerializer(read_only=True)
     class Meta:
         model = CommandeRoom
-        fields = 'idCommande', 'idRoom', 'idClient', 'idAdmin', 'idStatus', 'DateStart', 'DateEnd', 'price', 'total', 'createdAt'
+        fields = 'idCommande', 'idRoom', 'idClient', 'idAdmin', 'idStatus', 'DateStart', 'DateEnd', 'price', 'total', 'payed', 'createdAt'
 
 class CreateCommandeDTO(serializers.Serializer):
     idRoom = serializers.IntegerField(required=True)

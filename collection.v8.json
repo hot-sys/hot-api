@@ -1600,14 +1600,14 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/get/1",
+									"raw": "{{base_url}}/rooms/get/2",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"rooms",
 										"get",
-										"1"
+										"2"
 									]
 								}
 							},
@@ -1891,7 +1891,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"title\": \"Émeraude\"\r\n}",
+									"raw": "{\r\n    \"subTitle\": \"Family\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2315,7 +2315,7 @@
 					"name": "PUT",
 					"item": [
 						{
-							"name": "Delete clients Copy",
+							"name": "Recover client",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -2913,6 +2913,65 @@
 							"response": []
 						},
 						{
+							"name": "Get all by id room",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/commande/getroom/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"commande",
+										"getroom",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get reserved",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rooms/commande/getreserved",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"commande",
+										"getreserved"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Get all commande without paginate",
 							"request": {
 								"auth": {
@@ -2957,7 +3016,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/rooms/commande/get/1",
+									"raw": "{{base_url}}/rooms/commande/get/30",
 									"host": [
 										"{{base_url}}"
 									],
@@ -2965,7 +3024,7 @@
 										"rooms",
 										"commande",
 										"get",
-										"1"
+										"30"
 									]
 								}
 							},
@@ -3009,6 +3068,45 @@
 										"rooms",
 										"commande",
 										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Payed room reserved",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"montant\": 100\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/rooms/commande/paye/30",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"commande",
+										"paye",
+										"30"
 									]
 								}
 							},
@@ -3123,6 +3221,82 @@
 										"rooms",
 										"commande",
 										"filter"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Search Command Client",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"query\": \"Eric\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/rooms/commande/search",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"commande",
+										"search"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Truncate commande",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/rooms/commande/truncate",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rooms",
+										"commande",
+										"truncate"
 									]
 								}
 							},
