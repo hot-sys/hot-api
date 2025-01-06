@@ -84,6 +84,31 @@ def stat(request):
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
 
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande payed"),
+        400: OpenApiResponse(description="Bad Request"),
+        401: OpenApiResponse(description="Unauthorized"),
+        404: OpenApiResponse(description="Commande not found"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Paye commande",
+    summary="Paye commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @token_required
@@ -595,7 +620,7 @@ def get_all_commande(request):
         if cached_data:
             return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
 
-        commande = CommandeRoom.objects.all()
+        commande = CommandeRoom.objects.filter(idStatus_id=3)
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
         serializer = CommandeRoomSerializer(commande, many=True)
@@ -652,7 +677,7 @@ def get_all_commande_room(request, idRoom):
             room = Room.objects.get(idRoom=idRoom)
         except Room.DoesNotExist:
             return api_response(data=None, message="Room not found", success=False, status_code=404)
-        commande = CommandeRoom.objects.filter(idRoom=room)
+        commande = CommandeRoom.objects.filter(idRoom=room, idStatus_id=3)
         serializer = CommandeRoomSerializer(commande, many=True)
         data_paginated = {
             'commande': serializer.data,
