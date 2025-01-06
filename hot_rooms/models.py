@@ -58,6 +58,7 @@ class CommandeRoom(models.Model):
     DateEnd = models.DateTimeField()
     price = models.IntegerField(default=0)
     total = models.IntegerField(default=0)
+    payed = models.IntegerField(default=0, null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
