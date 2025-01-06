@@ -178,13 +178,13 @@ def commande(request):
                     create_history(admin, 1, commande, "Commande created")
                     create_history_room(validated_data['idRoom'], idAdmin, "Commande created")
                 elif validated_data['idStatus'] == 1:
-                    create_history(admin, 2, commande, "Commande reserved")
+                    create_history(admin, 1, commande, "Commande reserved")
                     create_history_room(validated_data['idRoom'], idAdmin, "Commande reserved")
                 elif validated_data['idStatus'] == 2:
-                    create_history(admin, 3, commande, "Commande canceled")
+                    create_history(admin, 1, commande, "Commande canceled")
                     create_history_room(validated_data['idRoom'], idAdmin, "Commande canceled")
                 elif validated_data['idStatus'] == 4:
-                    create_history(admin, 4, commande, "Commande pending")
+                    create_history(admin, 1, commande, "Commande pending")
                     create_history_room(validated_data['idRoom'], idAdmin, "Commande pending")
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
@@ -461,6 +461,72 @@ def get_commande_reserved(request):
         return api_response(data=data_paginated, message="All commande reserved room", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All commande search room"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Search commandes by parameters",
+    summary="Search commandes",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def search_commande_client(request):
+    data = request.data
+    if 'query' in data:
+        try:
+            query = data["query"]
+            page = int(request.GET.get('page', 1))
+            limit = int(request.GET.get('limit', 10))
+            cache_key = generate_cache_key('commande-search', query=query, page=page, limit=limit)
+            cached_data = get_cached_data(cache_key)
+            if cached_data:
+                return api_response(data=cached_data, message="All commande search room", success=True, status_code=200)
+
+            commande = CommandeRoom.objects.filter(
+                Q(idStatus__idStatus=1) &
+                (
+                    Q(idClient__firstName__icontains=query) |
+                    Q(idClient__name__icontains=query) |
+                    Q(idClient__email__icontains=query) |
+                    Q(idClient__phone__icontains=query)
+                )
+            )
+            paginator = Paginator(commande, limit)
+            try:
+                commande_paginated = paginator.page(page)
+            except PageNotAnInteger:
+                commande_paginated = paginator.page(1)
+            except EmptyPage:
+                commande_paginated = []
+
+            serializer = CommandeRoomSerializer(commande_paginated, many=True)
+            data_paginated = {
+                'commande': serializer.data,
+                'paginations': {
+                    'document': len(serializer.data),
+                    'total_pages': paginator.num_pages,
+                    'current_page': commande_paginated.number,
+                    'limit': limit
+                }
+            }
+            set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+            return api_response(data=data_paginated, message="All commande search room", success=True, status_code=200)
+        except Exception as e:
+            return api_response(data=None, message=str(e), success=False, status_code=500)
+    else:
+        return api_response(data=None, message="Missing query parameter", success=False, status_code=400)
 
 @extend_schema(
     responses={
