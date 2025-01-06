@@ -112,6 +112,7 @@ def truncate(request):
             )
             CommandeRoom.objects.all().delete()
         delete_cache_by_prefix('commande-')
+        delete_cache_by_prefix('room-')
         return api_response(data=None, message="Commande truncated successfully", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -173,15 +174,25 @@ def commande(request):
             )
             try:
                 admin = User.objects.get(idUser=idAdmin)
-                create_history(admin, 1, commande, "Commande created")
-                create_history_room(validated_data['idRoom'], idAdmin, "Commande created")
+                if validated_data['idStatus'] == 3:
+                    create_history(admin, 1, commande, "Commande created")
+                    create_history_room(validated_data['idRoom'], idAdmin, "Commande created")
+                elif validated_data['idStatus'] == 1:
+                    create_history(admin, 2, commande, "Commande reserved")
+                    create_history_room(validated_data['idRoom'], idAdmin, "Commande reserved")
+                elif validated_data['idStatus'] == 2:
+                    create_history(admin, 3, commande, "Commande canceled")
+                    create_history_room(validated_data['idRoom'], idAdmin, "Commande canceled")
+                elif validated_data['idStatus'] == 4:
+                    create_history(admin, 4, commande, "Commande pending")
+                    create_history_room(validated_data['idRoom'], idAdmin, "Commande pending")
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
-            serializer = CommandeRoomSerializer(commande)
+        serializer = CommandeRoomSerializer(commande)
         delete_cache_by_prefix("commande-")
         delete_cache_by_prefix("room-")
         delete_cache_by_prefix("room-stat")
-        return api_response(data=None, message="Commande created successfully", success=True, status_code=200)
+        return api_response(data=serializer.data, message="Commande created successfully", success=True, status_code=200)
     else:
         return api_response(data=None, message=dto.errors, success=False, status_code=400)
 
@@ -498,6 +509,61 @@ def get_all_commande(request):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="All commandes room with id"),
+        404: OpenApiResponse(description="Room not found"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all commandes room with id",
+    summary="Get all commandes room with id",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idRoom',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_all_commande_room(request, idRoom):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('commande-all-room-by-id', idRoom=idRoom, page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All commande room with id", success=True, status_code=200)
+        try:
+            room = Room.objects.get(idRoom=idRoom)
+        except Room.DoesNotExist:
+            return api_response(data=None, message="Room not found", success=False, status_code=404)
+        commande = CommandeRoom.objects.filter(idRoom=room)
+        serializer = CommandeRoomSerializer(commande, many=True)
+        data_paginated = {
+            'commande': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': page,
+                'current_page': page,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="All commande room with id", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="Commande retrieved successfully"),
         404: OpenApiResponse(description="Commande not found"),
         500: OpenApiResponse(description="Internal server error")
@@ -793,7 +859,7 @@ def all(request):
         cache_key = generate_cache_key('room-allwithpaginate', page=page, limit=limit)
         cached_data = get_cached_data(cache_key)
         if cached_data:
-            return api_response(data=cached_data, message="All rooms", success=True, status_code=200)
+            return api_response(data=cached_data, message="All rooms from caches", success=True, status_code=200)
 
         rooms = Room.objects.all().select_related('idAdmin')
         paginator = Paginator(rooms, limit)
@@ -1061,7 +1127,7 @@ def get_room(request, idRoom):
         cache_key = generate_cache_key('room-detail', idRoom=idRoom)
         cache_data = get_cached_data(cache_key)
         if cache_data:
-            return api_response(data=cache_data, message="Room retrieved successfully", success=True, status_code=200)
+            return api_response(data=cache_data, message="Room retrieved successfully from caches", success=True, status_code=200)
         room = Room.objects.get(idRoom=idRoom)
         serializer = RoomResponseSerializer(room)
         imageRome = RoomImage.objects.filter(idRoom=idRoom)
