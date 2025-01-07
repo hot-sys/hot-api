@@ -527,6 +527,68 @@ def get_commande_reserved(request):
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande status room"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all commandes by status",
+    summary="Get all commandes by status",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idStatus',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_commande_status(request, idStatus):
+    try:
+        if idStatus not in [1, 2, 3, 4]:
+            return api_response(data=None, message="Invalid status", success=False, status_code=400)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('commande-status', page=page, idStatus=idStatus, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="All commande status room", success=True, status_code=200)
+
+        commande = CommandeRoom.objects.filter(idStatus=idStatus)
+        paginator = Paginator(commande, limit)
+        try:
+            commande_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_paginated = []
+
+        serializer = CommandeRoomSerializer(commande_paginated, many=True)
+        data_paginated = {
+            'commande': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="All commande status room", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
 @extend_schema(
     responses={
         200: OpenApiResponse(description="All commande search room"),
@@ -547,20 +609,22 @@ def get_commande_reserved(request):
 @authentication_classes([TokenAuthentication])
 @token_required
 @checkUser
-def search_commande_client(request):
+def search_commande_client(request, idStatus):
+    if idStatus not in [1, 2, 3, 4]:
+        return api_response(data=None, message="Invalid status", success=False, status_code=400)
     data = request.data
     if 'query' in data:
         try:
             query = data["query"]
             page = int(request.GET.get('page', 1))
             limit = int(request.GET.get('limit', 10))
-            cache_key = generate_cache_key('commande-search', query=query, page=page, limit=limit)
+            cache_key = generate_cache_key('commande-search-with-status', query=query, page=page, limit=limit, idStatus=idStatus)
             cached_data = get_cached_data(cache_key)
             if cached_data:
                 return api_response(data=cached_data, message="All commande search room", success=True, status_code=200)
 
             commande = CommandeRoom.objects.filter(
-                Q(idStatus__idStatus=1) &
+                Q(idStatus__idStatus=idStatus) &
                 (
                     Q(idClient__firstName__icontains=query) |
                     Q(idClient__name__icontains=query) |

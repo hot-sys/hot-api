@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import all, stat, get_room, paye_room, deleted, search_commande_client, get_all_commande_room, commande, truncate, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
+from .views import all, stat, get_room, paye_room, deleted, search_commande_client, get_all_commande_room, get_commande_status, commande, truncate, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
 
 urlpatterns = [
     path('all', all, name='all'),
@@ -10,12 +10,13 @@ urlpatterns = [
     path('commande/reserved', reserved, name='reserved'),
     path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
     path('commande/filter', filter_commande, name='filter_commande'),
-    path('commande/search', search_commande_client, name='search_commande_client'),
+    path('commande/search/<int:idStatus>', search_commande_client, name='search_commande_client'),
     path('commande/paye/<int:idCommande>', paye_room, name='paye_room'),
     path('commande/simulate', simulate_commande, name='simulate_commande'),
     path('commande/all', get_commande, name='get_commande'),
     path('commande/getall', get_all_commande, name='get_all_commande'),
     path('commande/getroom/<int:idRoom>', get_all_commande_room, name='get_all_commande_room'),
+    path('commande/status/<int:idStatus>', get_commande_status, name='get_commande_status'),
     path('commande/getreserved', get_commande_reserved, name='get_commande_reserved'),
     path('commande/get/<int:idCommande>', get_commande_by_id, name='get_commande_by_id'),
     path('create', create, name='create'),
