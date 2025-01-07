@@ -9,7 +9,9 @@ from hot_services.models import Status
 from utils.api_response import api_response
 from django.utils import timezone
 from datetime import timedelta
+from datetime import datetime
 from django.utils.timezone import now
+from .utils import update_room_status
 
 class RoomSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse(read_only=True)
@@ -20,43 +22,15 @@ class RoomSerializer(serializers.ModelSerializer):
 class RoomResponseSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse(read_only=True)
     available = serializers.SerializerMethodField()
-    dateAvailable = serializers.SerializerMethodField()
     class Meta:
         model = Room
         fields = 'idRoom', 'idAdmin', 'title', 'subTitle', 'description', 'price', 'available', 'dateAvailable', 'info', 'createdAt', 'updatedAt'
 
     def get_available(self, obj):
-        today = now().date()
-        overlapping_commandes = CommandeRoom.objects.filter(
-            idRoom=obj,
-            DateStart__lte=today,
-            DateEnd__gte=today
-        )
-        is_available = not overlapping_commandes.exists()
+        update_room_status()
+        obj.refresh_from_db()
+        return obj.available
 
-        if obj.available != is_available:
-            obj.available = is_available
-            obj.save(update_fields=['available'])
-
-        return is_available
-
-    def get_dateAvailable(self, obj):
-        today = now().date()
-        overlapping_commandes = CommandeRoom.objects.filter(
-            idRoom=obj,
-            DateEnd__gte=today
-        ).order_by('DateEnd')
-
-        if overlapping_commandes.exists():
-            next_available_date = overlapping_commandes.first().DateEnd + timedelta(days=1)
-        else:
-            next_available_date = None
-
-        if obj.dateAvailable != next_available_date:
-            obj.dateAvailable = next_available_date
-            obj.save(update_fields=['dateAvailable'])
-
-        return next_available_date
 
 class RoomImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -70,7 +44,7 @@ class CommandeRoomSerializer(serializers.ModelSerializer):
     idStatus = StatusSerializer(read_only=True)
     class Meta:
         model = CommandeRoom
-        fields = 'idCommande', 'idRoom', 'idClient', 'idAdmin', 'idStatus', 'DateStart', 'DateEnd', 'price', 'total', 'createdAt'
+        fields = 'idCommande', 'idRoom', 'idClient', 'idAdmin', 'idStatus', 'DateStart', 'DateEnd', 'price', 'total', 'payed', 'createdAt'
 
 class CreateCommandeDTO(serializers.Serializer):
     idRoom = serializers.IntegerField(required=True)

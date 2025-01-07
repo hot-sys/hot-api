@@ -10,21 +10,12 @@ from datetime import datetime, timedelta
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         queryset = super().get_queryset().filter(deletedAt__isnull=True)
-        for room in queryset:
-            if room.dateAvailable and room.dateAvailable < now():
-                room.dateAvailable = None
-                room.available = True
-                room.save()
         return queryset
 class AllRoomManager(models.Manager):
     def get_queryset(self):
         queryset = super().get_queryset()
-        for room in queryset:
-            if room.dateAvailable and room.dateAvailable < now():
-                room.dateAvailable = None
-                room.available = True
-                room.save()
         return queryset
+
 class Room(models.Model):
     idRoom = models.AutoField(primary_key=True)
     idAdmin = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -67,6 +58,7 @@ class CommandeRoom(models.Model):
     DateEnd = models.DateTimeField()
     price = models.IntegerField(default=0)
     total = models.IntegerField(default=0)
+    payed = models.IntegerField(default=0, null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
