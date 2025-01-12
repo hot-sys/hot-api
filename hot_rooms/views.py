@@ -451,7 +451,9 @@ def get_commande(request):
         if cached_data:
             return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
 
-        commande = CommandeRoom.objects.all()
+        commande = CommandeRoom.objects.select_related(
+            'idRoom', 'idClient', 'idAdmin', 'idStatus'
+        ).all()
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)

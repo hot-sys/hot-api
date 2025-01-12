@@ -18,7 +18,7 @@ class Status(models.Model):
         return self.name
 
 class Service(models.Model):
-    idService = models.AutoField(primary_key=True)
+    idService = models.AutoField(primary_key=True, db_index=True)
     idUser = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)

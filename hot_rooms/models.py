@@ -16,11 +16,16 @@ class AllRoomManager(models.Manager):
         queryset = super().get_queryset()
         return queryset
 
+class AllCommandManager(models.Manager):
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(DateStart__gte=now())
+        return queryset
+
 class Room(models.Model):
-    idRoom = models.AutoField(primary_key=True)
-    idAdmin = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
-    subTitle = models.CharField(max_length=255, blank=True, null=True)
+    idRoom = models.AutoField(primary_key=True, db_index=True)
+    idAdmin = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    title = models.CharField(max_length=255, db_index=True)
+    subTitle = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     description = models.TextField(blank=True, null=True)
     price = models.IntegerField(validators=[validate_positive])
     available = models.BooleanField(default=True)
@@ -50,11 +55,11 @@ class RoomImage(models.Model):
 
 class CommandeRoom(models.Model):
     idCommande = models.AutoField(primary_key=True)
-    idRoom = models.ForeignKey(Room, on_delete=models.CASCADE, null=True)
-    idClient = models.ForeignKey(Client, on_delete=models.CASCADE, null=True)
-    idAdmin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    idStatus = models.ForeignKey(Status, on_delete=models.CASCADE, null=True)
-    DateStart = models.DateTimeField()
+    idRoom = models.ForeignKey(Room, on_delete=models.CASCADE, null=True, db_index=True)
+    idClient = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, db_index=True)
+    idAdmin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_index=True, blank=True)
+    idStatus = models.ForeignKey(Status, on_delete=models.CASCADE, db_index=True, null=True)
+    DateStart = models.DateTimeField(db_index=True)
     DateEnd = models.DateTimeField()
     price = models.IntegerField(default=0)
     total = models.IntegerField(default=0)
@@ -62,6 +67,8 @@ class CommandeRoom(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
+
+    objects = AllCommandManager()
 
     def __str__(self):
         return f"Commande {self.idCommande} for Room {self.idRoom.title}"
