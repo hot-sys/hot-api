@@ -464,6 +464,7 @@ def received_command(request, idCommande):
         commande.dateReceived = now()
         commande.save()
         serializer = CommandeRoomSerializer(commande)
+        delete_cache_by_prefix('commande-')
         return api_response(data=serializer.data, message="Commande received successfully", success=True, status_code=200)
     except CommandeRoom.DoesNotExist:
         return api_response(data=None, message="Commande not found", success=False, status_code=404)
