@@ -122,6 +122,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'drf_spectacular',
+    'hot_init',
     'hot_clients',
     'hot_history',
     'hot_hotel',
@@ -179,6 +180,7 @@ SPECTACULAR_SETTINGS = {
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+USE_SSL = os.getenv('USE_SSL') == 'True'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -188,9 +190,8 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
         'OPTIONS': {
-            'ssl': {
-                'ca': os.path.join(BASE_DIR, 'ca.pem'),
-            },
+            **({'ssl': {'ca': os.path.join(BASE_DIR, 'ca.pem')}} if USE_SSL else {}),
+            **({'init_command': "SET default_storage_engine=INNODB"} if not USE_SSL else {}),
         },
         'CONN_MAX_AGE': 600,
     }

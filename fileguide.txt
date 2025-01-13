@@ -28,3 +28,11 @@ docker stop redis-local
 docker rm redis-local
 
 redis-cli ping
+
+
+ricman1234
+
+[mysqld]
+ssl-ca=
+ssl-cert=
+ssl-key=
