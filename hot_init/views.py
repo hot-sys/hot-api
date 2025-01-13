@@ -9,16 +9,7 @@ from hot_history.models import typeHistorique
 from hot_services.models import Status
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from utils.api_response import api_response
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 
-@extend_schema(
-    responses={
-        200: UserSerializerResponse(many=True),
-        404: OpenApiResponse(description='Users not found')
-    },
-    description="Endpoint to get all registered users. Requires admin privileges.",
-    summary="Get all users",
-)
 @api_view(['GET'])
 def get_all_users(request):
     try:
@@ -46,14 +37,6 @@ def get_all_users(request):
     except User.DoesNotExist:
         return api_response(message="Users not found", success=False, status_code=404)
 
-@extend_schema(
-    responses={
-        200: OpenApiResponse(description="Type list"),
-        500: OpenApiResponse(description="Internal server error")
-    },
-    description="Get all type",
-    summary="Get all type",
-)
 @api_view(['GET'])
 def get_all_typeHistorique(request):
     try:
@@ -63,14 +46,6 @@ def get_all_typeHistorique(request):
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
 
-@extend_schema(
-    responses={
-        200: OpenApiResponse(description="Status list"),
-        500: OpenApiResponse(description="Internal server error")
-    },
-    description="Get all status",
-    summary="Get all status",
-)
 @api_view(['GET'])
 def get_all_status(request):
     try:
@@ -80,14 +55,6 @@ def get_all_status(request):
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
 
-@extend_schema(
-    responses={
-        200: RoleSerializer(many=True),
-        404: OpenApiResponse(description='Roles not found')
-    },
-    description="Endpoint to retrieve all roles. Requires authentication.",
-    summary="Get all roles",
-)
 @api_view(['GET'])
 def get_all_roles(request):
     try:
@@ -97,15 +64,6 @@ def get_all_roles(request):
     except Role.DoesNotExist:
         return api_response(message="Roles not found", success=False, status_code=404)
 
-@extend_schema(
-    request=RegisterDTO,
-    responses={
-        201: CreateUserSerializer,
-        400: OpenApiResponse(description='Invalid input data or user data')
-    },
-    description="Endpoint to Init a new user. The user must provide the necessary registration data.",
-    summary="Init new user",
-)
 @api_view(['POST'])
 def createUser(request):
     data = request.data
@@ -120,15 +78,6 @@ def createUser(request):
         return api_response(data=serializer.errors, message="Invalid user data", success=False, status_code=400)
     return api_response(data=dto.errors, message="Invalid input data", success=False, status_code=400)
 
-@extend_schema(
-    responses={
-        201: RoleSerializer,
-        400: OpenApiResponse(description='Invalid input data'),
-        404: OpenApiResponse(description='Role not found')
-    },
-    description="Endpoint to Init a new role. Requires authentication.",
-    summary="Init role",
-)
 @api_view(['POST'])
 def createRole(request):
     try:
@@ -145,15 +94,6 @@ def createRole(request):
     except Role.DoesNotExist:
         return api_response(message="Role not found", success=False, status_code=404)
 
-@extend_schema(
-    request=StatusSerializer,
-    responses={
-        200: OpenApiResponse(description="Status created"),
-        500: OpenApiResponse(description="Internal server error")
-    },
-    description="Init a status for admin",
-    summary="Init status",
-)
 @api_view(['POST'])
 def createStatus(request):
     try:
@@ -166,15 +106,6 @@ def createStatus(request):
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
 
-@extend_schema(
-    request=typeHistoriqueSerializer,
-    responses={
-        200: OpenApiResponse(description="Type created"),
-        500: OpenApiResponse(description="Internal server error")
-    },
-    description="Create a type for history transaction",
-    summary="Create type",
-)
 @api_view(['POST'])
 def createTypeHistory(request):
     try:

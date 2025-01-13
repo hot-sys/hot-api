@@ -144,6 +144,8 @@ def paye_room(request, idCommande):
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
             delete_cache_by_prefix("commande-")
+            list_cached_keys_by_prefix("commande-")
+            delete_cache_by_prefix("commande-")
             return api_response(data=CommandeRoomSerializer(commande).data, message="Commande payed", success=True, status_code=200)
         except CommandeRoom.DoesNotExist:
             return api_response(data=None, message="Commande not found", success=False, status_code=404)
@@ -228,16 +230,19 @@ def commande(request):
             diffDays = int((validated_data['DateEnd'] - validated_data['DateStart']).days)
             diffDays = max(1, diffDays + 1)
             total = price * diffDays
-            commande = CommandeRoom.objects.create(
-                idRoom_id=validated_data['idRoom'],
-                idClient_id=validated_data['idClient'],
-                idAdmin_id=idAdmin,
-                idStatus_id=validated_data['idStatus'],
-                DateStart=validated_data['DateStart'],
-                DateEnd=validated_data['DateEnd'],
-                price=price,
-                total=total
-            )
+            commande_data = {
+                'idRoom_id': validated_data['idRoom'],
+                'idClient_id': validated_data['idClient'],
+                'idAdmin_id': idAdmin,
+                'idStatus_id': validated_data['idStatus'],
+                'DateStart': validated_data['DateStart'],
+                'DateEnd': validated_data['DateEnd'],
+                'price': price,
+                'total': total,
+            }
+            if validated_data['idStatus'] == 3:
+                commande_data['payed'] = total
+            commande = CommandeRoom.objects.create(**commande_data)
             try:
                 admin = User.objects.get(idUser=idAdmin)
                 if validated_data['idStatus'] == 3:
@@ -419,6 +424,83 @@ def confirmeCommande(request, idCommande):
         return api_response(data=serializer.data, message="Commande confirmed successfully", success=True, status_code=200)
     except CommandeRoom.DoesNotExist:
         return api_response(data=None, message="Commande not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande received successfully"),
+        400: OpenApiResponse(description="Commande already received"),
+        404: OpenApiResponse(description="Commande not found"),
+    },
+    description="Receive a commande by ID",
+    summary="Receive commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkAdmin
+@checkUser
+def received_command(request, idCommande):
+    try:
+        commande = CommandeRoom.objects.get(idCommande=idCommande)
+        if commande.received:
+            return api_response(data=None, message="Commande already received", success=False, status_code=400)
+        commande.received = True
+        commande.dateReceived = now()
+        commande.save()
+        serializer = CommandeRoomSerializer(commande)
+        return api_response(data=serializer.data, message="Commande received successfully", success=True, status_code=200)
+    except CommandeRoom.DoesNotExist:
+        return api_response(data=None, message="Commande not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="All commandes not received"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Get all commandes not received",
+    summary="Get all commandes not received",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_commande_not_received(request):
+    try:
+        cache_key = generate_cache_key('commande-not-received')
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande not-received", success=True, status_code=200)
+        commande = CommandeRoom.objects.filter(received=False)
+        # commande = CommandeRoom.objects.filter(received=False).only('idRoom', 'price', 'total', 'payed')
+        serializer = CommandeRoomSerializer(commande, many=True)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
+        return api_response(data=serializer.data, message="Commande not-received", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
