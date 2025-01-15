@@ -260,6 +260,7 @@ def commande(request):
             except User.DoesNotExist:
                 return api_response(data=None, message="Admin not found", success=False, status_code=404)
         serializer = CommandeRoomSerializer(commande)
+        delete_cache_by_prefix("commande-allwithpaginate")
         delete_cache_by_prefix("commande-")
         delete_cache_by_prefix("room-")
         delete_cache_by_prefix("room-stat")
@@ -534,9 +535,7 @@ def get_commande(request):
         if cached_data:
             return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
 
-        commande = CommandeRoom.objects.select_related(
-            'idRoom', 'idClient', 'idAdmin', 'idStatus'
-        ).all()
+        commande = CommandeRoom.objects.all()
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)

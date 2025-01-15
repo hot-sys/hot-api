@@ -5,6 +5,7 @@ from hot_services.models import Status
 from hot_rooms.validators.price import validate_positive
 from django.utils.timezone import now
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 class SoftDeleteManager(models.Manager):
@@ -18,7 +19,9 @@ class AllRoomManager(models.Manager):
 
 class AllCommandManager(models.Manager):
     def get_queryset(self):
-        queryset = super().get_queryset().filter(DateStart__gte=now())
+        today = timezone.now().date()
+        queryset = super().get_queryset().filter(DateStart__date__gte=today)
+        # queryset = super().get_queryset()
         return queryset
 
 class Room(models.Model):
