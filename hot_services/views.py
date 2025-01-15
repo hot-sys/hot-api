@@ -100,7 +100,8 @@ def create_commande(request):
                 return api_response(message="Item not found", success=False, status_code=404)
             commande_service = CommandeService.objects.create(
                 idItem_id=validated_data['idItem'],
-                idClient_id=validated_data['idClient'],
+                idCommandeCommune=validated_data['idCommandeCommune'],
+                idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
                 idStatus_id=validated_data['idStatus'],
                 idAdmin_id=idAdmin,
                 number=validated_data['number'],

@@ -60,12 +60,15 @@ class ItemImage(models.Model):
 
 class CommandeService(models.Model):
     idCommande = models.AutoField(primary_key=True)
+    idCommandeCommune = models.CharField(max_length=255, blank=True, null=True)
     idItem = models.ForeignKey(ServiceItem, on_delete=models.CASCADE)
-    idClient = models.ForeignKey(Client, on_delete=models.CASCADE)
+    idClient = models.ForeignKey(Client, on_delete=models.CASCADE, blank=True, null=True)
     idStatus = models.ForeignKey(Status, on_delete=models.CASCADE)
     idAdmin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     number = models.IntegerField()
     total = models.IntegerField(default=0)
+    received = models.BooleanField(null=True, default=False)
+    dateReceived = models.DateTimeField(blank=True, null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
