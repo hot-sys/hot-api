@@ -33,7 +33,6 @@ urlpatterns = [
     path('api/rooms/', include('hot_rooms.urls')),
     path('api/services/', include('hot_services.urls')),
     path('api/clients/', include('hot_clients.urls')),
-    path('__debug__/', include('debug_toolbar.urls')),
     path('', RedirectView.as_view(url='/docs/api/', permanent=True)),
 ]
 
