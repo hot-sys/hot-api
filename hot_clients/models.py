@@ -9,7 +9,7 @@ class AllClientManager(models.Manager):
         return super().get_queryset()
 
 class Client(models.Model):
-    idClient = models.AutoField(primary_key=True)
+    idClient = models.AutoField(primary_key=True, db_index=True)
     name = models.CharField(max_length=255)
     firstName = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, blank=True, null=True)

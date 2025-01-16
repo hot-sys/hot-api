@@ -100,7 +100,8 @@ def create_commande(request):
                 return api_response(message="Item not found", success=False, status_code=404)
             commande_service = CommandeService.objects.create(
                 idItem_id=validated_data['idItem'],
-                idClient_id=validated_data['idClient'],
+                idCommandeCommune=validated_data['idCommandeCommune'],
+                idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
                 idStatus_id=validated_data['idStatus'],
                 idAdmin_id=idAdmin,
                 number=validated_data['number'],
@@ -420,7 +421,6 @@ def create_item_service(request, idService):
             return api_response(message=dto.errors, success=False)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
-
 
 @extend_schema(
     request=MultiPartParser,
@@ -745,6 +745,60 @@ def get_all_service_item(request, idService):
         }
         set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Service item list", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Item search found"),
+        404: OpenApiResponse(description="Service not found"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Search item by query",
+    summary="Search item by query",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idService',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def search_item_service(request, idService):
+    try:
+        data = request.data
+        query = data.get('query', '')
+        if query == '':
+            return api_response(message='Query is required', success=False, status_code=400)
+        cache_key = generate_cache_key('service-item-search', query=query, idService=idService)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message='Item search found', success=True, status_code=200)
+        try:
+            service = Service.objects.get(idService=idService)
+        except Service.DoesNotExist:
+            return api_response(message='Service not found', success=False)
+        data = request.data
+        items = ServiceItem.objects.filter(
+            Q(idService=idService) &
+            Q(title__icontains=query) |
+            Q(subTitle__icontains=query) |
+            Q(description__icontains=query)
+        )
+        serializer = ServiceItemSerializer(items, many=True)
+        set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
+        return api_response(data=serializer.data, message='Item search found', success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
 

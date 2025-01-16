@@ -20,6 +20,12 @@ load_dotenv(dotenv_path=".env")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# URL publique pour accéder aux fichiers médias
+MEDIA_URL = '/media/'
+
+# Chemin absolu pour stocker les fichiers médias
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
@@ -38,8 +44,8 @@ REST_FRAMEWORK = {
 
 # SimpleJWT settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -49,6 +55,10 @@ SIMPLE_JWT = {
 TOKEN_KEY = os.getenv('SECRET_KEY')
 
 ALLOWED_HOSTS = ['*']
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 
 # CORS CONFIG
 CORS_ALLOWED_ORIGINS = [
@@ -108,9 +118,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'debug_toolbar',
     'corsheaders',
     'rest_framework_simplejwt',
     'drf_spectacular',
+    'hot_init',
     'hot_clients',
     'hot_history',
     'hot_hotel',
@@ -130,6 +142,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -167,6 +180,7 @@ SPECTACULAR_SETTINGS = {
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+USE_SSL = os.getenv('USE_SSL') == 'True'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -176,9 +190,8 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
         'OPTIONS': {
-            'ssl': {
-                'ca': os.path.join(BASE_DIR, 'ca.pem'),
-            },
+            **({'ssl': {'ca': os.path.join(BASE_DIR, 'ca.pem')}} if USE_SSL else {}),
+            **({'init_command': "SET default_storage_engine=INNODB"} if not USE_SSL else {}),
         },
         'CONN_MAX_AGE': 600,
     }

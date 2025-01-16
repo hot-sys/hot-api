@@ -39,7 +39,7 @@ class CommandeServiceSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse()
     class Meta:
         model = CommandeService
-        fields = 'idCommande', 'idItem', 'idClient', 'idStatus', 'idAdmin', 'number', 'total', 'createdAt'
+        fields = 'idCommande', 'idCommandeCommune', 'idItem', 'idClient', 'idStatus', 'idAdmin', 'number', 'total', 'createdAt'
 
 class ItemImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -91,7 +91,8 @@ class UpdateServiceItemDTO(serializers.Serializer):
 
 class CreateCommandeServiceDTO(serializers.Serializer):
     idItem = serializers.IntegerField(required=True)
-    idClient = serializers.IntegerField(required=True)
+    idClient = serializers.IntegerField(required=False)
+    idCommandeCommune= serializers.CharField(max_length=255, required=True)
     idStatus = serializers.IntegerField(required=True)
     number = serializers.IntegerField(required=True)
 
