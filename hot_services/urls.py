@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import create_status, stat, get_all_status, confirmeCommande, search_item_service, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
+from .views import create_status, stat, get_all_status, confirmeCommande, confirmeNotReceivedCommande, search_item_service, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
 
 urlpatterns = [
     path('stat', stat, name='stat'),
@@ -16,8 +16,8 @@ urlpatterns = [
     path('commande/all', get_all_commande, name='get_all_commande'),
     path('commande/get/<int:idCommande>', get_commande_item, name='get_commande_item'),
     path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
+    path('commande/confirme-no-received/<int:idCommande>', confirmeNotReceivedCommande, name='confirmeNotReceivedCommande'),
 
-    
     path('item/search/<int:idService>', search_item_service, name='search_item_service'),
     path('item/create/<int:idService>', create_item_service, name='create_item_service'),
     path('item/delete/<int:idItem>', delete_item_service, name='delete_item_service'),

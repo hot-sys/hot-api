@@ -16,6 +16,7 @@ from hot_history.views import create_history
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils.services.supabase_item_service import upload_images, remove_file
 from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_data, delete_cache_by_prefix, list_cached_keys_by_prefix
+from django.utils.timezone import now
 from django.conf import settings
 from django.db.models import Count, Q
 
@@ -167,6 +168,57 @@ def simulate(request):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="Commande received by admin successfully"),
+        400: OpenApiResponse(description="Commande already received"),
+        404: OpenApiResponse(description="Commande not found"),
+    },
+    description="Receive a commande by ID",
+    summary="Receive commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def confirmeNotReceivedCommande(request, idCommande):
+    try:
+        commande = CommandeService.objects.get(idCommande=idCommande)
+        if commande.received:
+            return api_response(data=None, message="Commande service item already received by admin", success=False, status_code=400)
+        commande.received = True
+        commande.dateReceived = now()
+        commande.save()
+        serializer = CommandeServiceSerializer(commande)
+        try:
+            idAdmin = request.idUser
+            admin = User.objects.get(idUser=idAdmin)
+            message = "Commande service item received by admin : " + serializer.data.total
+            create_history(admin, 2, commande, message)
+        except User.DoesNotExist:
+            return api_response(data=None, message="Admin not found", success=False, status_code=404)
+        list_cached_keys_by_prefix("comservice-")
+        delete_cache_by_prefix("comservice-")
+        return api_response(data=serializer.data, message="Commande service item received by admin successfully", success=True, status_code=200)
+    except CommandeService.DoesNotExist:
+        return api_response(data=None, message="Commande service item not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="Commande service item confirmed successfully"),
         404: OpenApiResponse(description="Commande service item not found"),
     },
@@ -251,7 +303,7 @@ def get_all_commande(request):
         except EmptyPage:
             commande_item_paginated = []
 
-        serializer = CommandeServiceSerializer(commande_item_paginated, many=True)
+        serializer = CommandeServiceSerializer(commandes, many=True)
         data_paginated = {
             'items': serializer.data,
             'paginations': {
