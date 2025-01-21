@@ -10,6 +10,12 @@ class AllManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset()
 
+class AllCommandManager(models.Manager):
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # queryset = super().get_queryset().filter(received=False)
+        return queryset
+
 class Status(models.Model):
     idStatus = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
@@ -73,5 +79,6 @@ class CommandeService(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
 
+    objects = AllCommandManager()
     def __str__(self):
         return f"Commande {self.idCommande} for Service {self.idItem.title}"

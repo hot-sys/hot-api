@@ -6,6 +6,7 @@ from hot_rooms.validators.price import validate_positive
 from django.utils.timezone import now
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.db.models import Q
 
 
 class SoftDeleteManager(models.Manager):
@@ -20,8 +21,15 @@ class AllRoomManager(models.Manager):
 class AllCommandManager(models.Manager):
     def get_queryset(self):
         today = timezone.now().date()
-        queryset = super().get_queryset().filter(DateStart__date__gte=today)
+        queryset = super().get_queryset().filter(
+            Q(DateStart__date__gte=today) | Q(DateEnd__date__gte=today)
+        )
         # queryset = super().get_queryset()
+        return queryset
+
+class AllCommandAllManager(models.Manager):
+    def get_queryset(self):
+        queryset = super().get_queryset()
         return queryset
 
 class Room(models.Model):
@@ -64,8 +72,11 @@ class CommandeRoom(models.Model):
     idStatus = models.ForeignKey(Status, on_delete=models.CASCADE, db_index=True, null=True)
     DateStart = models.DateTimeField(db_index=True)
     DateEnd = models.DateTimeField()
+    DateFreed = models.DateTimeField(null=True)
+    DateSupposed = models.DateTimeField(null=True)
     price = models.IntegerField(default=0)
     total = models.IntegerField(default=0)
+    refund = models.IntegerField(default=0)
     payed = models.IntegerField(default=0, null=True)
     received = models.BooleanField(null=True, default=False)
     dateReceived = models.DateTimeField(blank=True, null=True)
@@ -74,6 +85,7 @@ class CommandeRoom(models.Model):
     deletedAt = models.DateTimeField(blank=True, null=True)
 
     objects = AllCommandManager()
+    object_all = AllCommandAllManager()
 
     def __str__(self):
         return f"Commande {self.idCommande} for Room {self.idRoom.title}"
