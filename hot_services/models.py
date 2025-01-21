@@ -12,7 +12,8 @@ class AllManager(models.Manager):
 
 class AllCommandManager(models.Manager):
     def get_queryset(self):
-        queryset = super().get_queryset().filter(received=False)
+        queryset = super().get_queryset()
+        # queryset = super().get_queryset().filter(received=False)
         return queryset
 
 class Status(models.Model):

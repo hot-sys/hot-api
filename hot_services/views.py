@@ -116,6 +116,7 @@ def create_commande(request):
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
         list_cached_keys_by_prefix("comservice-")
         delete_cache_by_prefix("comservice-")
+        delete_cache_by_prefix("stat-service")
         serializer = CommandeServiceSerializer(commande_service)
         return api_response(data=serializer.data, message="Commande service created", success=True, status_code=201)
     else:
@@ -205,7 +206,8 @@ def confirmeNotReceivedCommande(request, idCommande):
         try:
             idAdmin = request.idUser
             admin = User.objects.get(idUser=idAdmin)
-            message = "Commande service item received by admin : " + serializer.data.total
+            total = commande.total
+            message = "Commande service item received by admin : " + str(total)
             create_history(admin, 2, commande, message)
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
@@ -294,7 +296,7 @@ def get_all_commande(request):
         if cached_data:
             return api_response(data=cached_data, message="Commande service list", success=True, status_code=200)
 
-        commandes = CommandeService.objects.all()
+        commandes = CommandeService.objects.filter(received=False).order_by('-createdAt')
         paginator = Paginator(commandes, limit)
         try:
             commande_item_paginated = paginator.page(page)
