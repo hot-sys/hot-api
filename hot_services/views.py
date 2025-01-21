@@ -207,7 +207,8 @@ def confirmeNotReceivedCommande(request, idCommande):
             idAdmin = request.idUser
             admin = User.objects.get(idUser=idAdmin)
             total = commande.total
-            message = "Commande service item received by admin : " + str(total)
+            message = "Commande service item received by admin"
+            # message = "Commande service item received by admin : " + str(total)
             create_history(admin, 2, commande, message)
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)

@@ -21,6 +21,8 @@ from utils.cache_utils import generate_cache_key, get_cached_data, set_cached_da
 from django.conf import settings
 from hot_clients.serializers import ClientSerializer
 from hot_clients.models import Client
+from django.utils import timezone
+
 
 # STAT API
 # --------------------------------------------------------------------------------
@@ -84,6 +86,58 @@ def stat(request):
 # COMMAND API
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande canceled"),
+        400: OpenApiResponse(description="Bad Request"),
+        401: OpenApiResponse(description="Unauthorized"),
+        404: OpenApiResponse(description="Commande not found"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Cancel commande",
+    summary="Cancel commande",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def cancel_commande(request, idCommande):
+    idAdmin = request.idUser
+    today = timezone.now().date()
+    try:
+        commande = CommandeRoom.objects.get(idCommande=idCommande)
+        if commande.DateStart.date() != today and commande.idStatus.idStatus == 3:
+            return api_response(data=None, message="Commande can't be canceled", success=False, status_code=400)
+        else:
+            commande.delete()
+            try:
+                admin = User.objects.get(idUser=idAdmin)
+                message = "Commande canceled"
+                create_history(admin, 1, None, message)
+            except User.DoesNotExist:
+                return api_response(data=None, message="Admin not found", success=False, status_code=404)
+            delete_cache_by_prefix("commande-")
+            list_cached_keys_by_prefix("commande-")
+            delete_cache_by_prefix("commande-")
+            return api_response(data=CommandeRoomSerializer(commande).data, message=message, success=True, status_code=200)
+    except CommandeRoom.DoesNotExist:
+        return api_response(data=None, message="Commande not found", success=False, status_code=404)
+
 
 @extend_schema(
     responses={
@@ -175,12 +229,13 @@ def paye_room(request, idCommande):
 def truncate(request):
     try:
         with transaction.atomic():
-            CommandeRoom.objects.all().update(
+            CommandeRoom.object_all.all().update(
                 idRoom=None, idClient=None, idAdmin=None, idStatus=None
             )
-            CommandeRoom.objects.all().delete()
+            CommandeRoom.object_all.all().delete()
         delete_cache_by_prefix('commande-')
         delete_cache_by_prefix('room-')
+        delete_cache_by_prefix('stat-')
         return api_response(data=None, message="Commande truncated successfully", success=True, status_code=200)
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
@@ -237,6 +292,7 @@ def commande(request):
                 'idStatus_id': validated_data['idStatus'],
                 'DateStart': validated_data['DateStart'],
                 'DateEnd': validated_data['DateEnd'],
+                'DateSupposed': validated_data['DateEnd'],
                 'price': price,
                 'total': total,
             }
@@ -317,6 +373,7 @@ def reserved(request):
                     idStatus_id=1,
                     DateStart=validated_data['DateStart'],
                     DateEnd=validated_data['DateEnd'],
+                    DateSupposed=validated_data['DateEnd'],
                     price=price,
                     total=total
                 )
@@ -498,7 +555,10 @@ def get_commande_not_received(request):
         cached_data = get_cached_data(cache_key)
         if cached_data:
             return api_response(data=cached_data, message="Commande not-received", success=True, status_code=200)
-        commande = CommandeRoom.objects.filter(received=False)
+        commande = CommandeRoom.objects.filter(
+            Q(received=False) &
+            Q(idStatus=3)
+        )
         # commande = CommandeRoom.objects.filter(received=False).only('idRoom', 'price', 'total', 'payed')
         serializer = CommandeRoomSerializer(commande, many=True)
         set_cached_data(cache_key, serializer.data, timeout=settings.CACHE_TTL)
@@ -777,7 +837,8 @@ def get_all_commande(request):
         if cached_data:
             return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
 
-        commande = CommandeRoom.objects.filter(idStatus_id=3)
+        commande = CommandeRoom.objects.filter()
+        # commande = CommandeRoom.objects.filter(idStatus_id=3)
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)
@@ -1756,15 +1817,34 @@ def update_by_admin(request, idRoom):
 @checkUser
 def free_room(request, idRoom):
     try:
+        today = timezone.now().date()
         room = Room.objects.get(idRoom=idRoom)
+
+        command = CommandeRoom.objects.filter(
+            Q(idRoom=room.idRoom) &
+            Q(DateStart__date__lte=today) &
+            Q(DateEnd__date__gte=today)
+        ).first()
+        # if command.exists():
+        #     command.update(DateEnd=today)
+
+        if command:
+            if command.DateStart.date() == today:
+                command.delete()
+            else:
+                days_remaining = (command.DateEnd.date() - today).days
+                command.refund = days_remaining * command.idRoom.price
+                command.DateFreed = today
+                command.DateEnd = today
+                command.save()
+
         room.available = True
         room.dateAvailable = None
         room.save()
-
         idUser = request.idUser
         create_history_room(room.idRoom, idUser, "Room freed")
-
         list_cached_keys_by_prefix("room-")
+        delete_cache_by_prefix("commande-")
         delete_cache_by_prefix("room-")
         return api_response(data=None, message="Room freed successfully", success=True, status_code=200)
     except Room.DoesNotExist:

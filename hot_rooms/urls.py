@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import all, stat, get_room, paye_room, deleted, get_commande_not_received, received_command, get_all_client_commande, search_commande_client, get_all_commande_room, get_commande_status, commande, truncate, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
+from .views import all, stat, get_room, paye_room, cancel_commande, deleted, get_commande_not_received, received_command, get_all_client_commande, search_commande_client, get_all_commande_room, get_commande_status, commande, truncate, get_client_room_not_available, reserved, get_commande_reserved, filter_commande, room_unavailable, get_commande, get_all_commande, free_room, simulate_commande, confirmeCommande, get_commande_by_id, imageall, room_available, delete_image, search_room, image_room, createimage, create, update_by_admin, delete_by_admin, recover_by_admin, upload
 
 urlpatterns = [
     path('all', all, name='all'),
@@ -12,6 +12,7 @@ urlpatterns = [
     path('commande/filter', filter_commande, name='filter_commande'),
     path('commande/search/<int:idStatus>', search_commande_client, name='search_commande_client'),
     path('commande/paye/<int:idCommande>', paye_room, name='paye_room'),
+    path('commande/cancel/<int:idCommande>', cancel_commande, name='cancel_commande'),
     path('commande/simulate', simulate_commande, name='simulate_commande'),
     path('commande/all', get_commande, name='get_commande'),
     path('commande/not-received', get_commande_not_received, name='get_commande_not_received'),
