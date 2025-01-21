@@ -710,7 +710,7 @@ def get_commande_status(request, idStatus):
         if cached_data:
             return api_response(data=cached_data, message="All commande status room", success=True, status_code=200)
 
-        commande = CommandeRoom.objects.filter(idStatus=idStatus)
+        commande = CommandeRoom.objects.filter(idStatus=idStatus).order_by('-createdAt')
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)
@@ -782,7 +782,7 @@ def search_commande_client(request, idStatus):
                     Q(idClient__email__icontains=query) |
                     Q(idClient__phone__icontains=query)
                 )
-            )
+            ).order_by('-createdAt')
             paginator = Paginator(commande, limit)
             try:
                 commande_paginated = paginator.page(page)
@@ -837,7 +837,7 @@ def get_all_commande(request):
         if cached_data:
             return api_response(data=cached_data, message="All commande room", success=True, status_code=200)
 
-        commande = CommandeRoom.objects.filter()
+        commande = CommandeRoom.objects.filter().order_by('-createdAt')
         # commande = CommandeRoom.objects.filter(idStatus_id=3)
         paginator = Paginator(commande, limit)
         try:
@@ -902,7 +902,7 @@ def get_all_client_commande(request, idClient):
         except Client.DoesNotExist:
             return api_response(data=None, message="Client not found", success=False, status_code=404)
 
-        commande = CommandeRoom.objects.filter(idClient=client)
+        commande = CommandeRoom.objects.filter(idClient=client).order_by('-createdAt')
         paginator = Paginator(commande, limit)
         try:
             commande_paginated = paginator.page(page)
@@ -964,7 +964,7 @@ def get_all_commande_room(request, idRoom):
             room = Room.objects.get(idRoom=idRoom)
         except Room.DoesNotExist:
             return api_response(data=None, message="Room not found", success=False, status_code=404)
-        commande = CommandeRoom.objects.filter(idRoom=room, idStatus_id=3)
+        commande = CommandeRoom.objects.filter(idRoom=room, idStatus_id=3).order_by('-createdAt')
         serializer = CommandeRoomSerializer(commande, many=True)
         data_paginated = {
             'commande': serializer.data,
@@ -1346,7 +1346,7 @@ def get_client_room_not_available(request, idRoom):
                 idRoom=room,
                 DateStart__lte=today,
                 DateEnd__gte=today
-            )
+            ).order_by('-createdAt')
             commandes_data = [
                 {
                     "Client": ClientSerializer(commande.idClient).data,
