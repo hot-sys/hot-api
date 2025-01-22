@@ -73,6 +73,7 @@ class CommandeService(models.Model):
     idAdmin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     number = models.IntegerField()
     total = models.IntegerField(default=0)
+    payed = models.IntegerField(default=0, null=True)
     received = models.BooleanField(null=True, default=False)
     dateReceived = models.DateTimeField(blank=True, null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
