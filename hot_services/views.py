@@ -769,7 +769,7 @@ def get_all_service_item(request, idService):
     try:
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        cache_key = generate_cache_key('service-item-withpaginate', page=page, limit=limit)
+        cache_key = generate_cache_key('service-item-withpaginate', page=page, limit=limit, idService=idService)
         cached_data = get_cached_data(cache_key)
         if cached_data:
             return api_response(data=cached_data, message="Service item list", success=True, status_code=200)
