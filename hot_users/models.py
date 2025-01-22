@@ -27,7 +27,7 @@ class User(models.Model):
     name = models.CharField(max_length=255)
     firstname = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, blank=True, null=True)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=False)
     genre = models.CharField(max_length=10, blank=True, null=True)
     adress = models.TextField(blank=True, null=True)
     passwordVersion = models.IntegerField(default=1)

@@ -58,10 +58,15 @@ def login(request):
                 }
                 access_token = jwt.encode(access_payload, settings.TOKEN_KEY, algorithm='HS256')
                 refresh_token = jwt.encode(refresh_payload, settings.TOKEN_KEY, algorithm='HS256')
+                if dataRole.data["poste"] == "Room":
+                    access_user = False
+                else:
+                    access_user = True
                 datalogged = {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                     'role': dataRole.data["idRole"],
+                    'access_user': access_user,
                 }
                 return api_response(data=datalogged, message="Login successful", success=True, status_code=200)
         except User.DoesNotExist:

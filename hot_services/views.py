@@ -68,6 +68,56 @@ def stat(request):
 @extend_schema(
     request= CreateCommandeServiceDTO,
     responses={
+        201: OpenApiResponse(description="Commande service item created for client"),
+        404: OpenApiResponse(description="Item not found"),
+        400: OpenApiResponse(description="Bad request")
+    },
+    description="Create a new commande service item for client",
+    summary="Create a new commande service item for client",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def create_commande_client(request):
+    data = request.data
+    dto = CreateCommandeServiceDTO(data=data)
+    if dto.is_valid():
+        validated_data = dto.validated_data
+        with transaction.atomic():
+            try:
+                item = ServiceItem.objects.get(idItem=validated_data['idItem'])
+                total = item.price * validated_data['number']
+            except ServiceItem.DoesNotExist:
+                return api_response(message="Item not found", success=False, status_code=404)
+            commande_service = CommandeService.objects.create(
+                idItem_id=validated_data['idItem'],
+                idCommandeCommune=validated_data['idCommandeCommune'],
+                idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
+                idStatus_id=validated_data['idStatus'],
+                number=validated_data['number'],
+                total=total,
+            )
+            commande_service.save()
+        list_cached_keys_by_prefix("comservice-")
+        delete_cache_by_prefix("comservice-")
+        delete_cache_by_prefix("stat-service")
+        serializer = CommandeServiceSerializer(commande_service)
+        return api_response(data=serializer.data, message="Commande service created for client", success=True, status_code=201)
+    else:
+        return api_response(message=dto.errors, success=False, status_code=400)
+
+@extend_schema(
+    request= CreateCommandeServiceDTO,
+    responses={
         201: OpenApiResponse(description="Commande service item created"),
         404: OpenApiResponse(description="Item not found"),
         400: OpenApiResponse(description="Bad request")
