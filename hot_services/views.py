@@ -691,6 +691,54 @@ def filter_commande(request):
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def search_commande(request):
+    try:
+        data = request.data
+        query = data.get('query', '')
+        if query == '':
+            return api_response(data=None, message="Search query cannot be empty", success=False, status_code=400)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('comservice-commmande-item', query=query, page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande service search successfully", success=True, status_code=200)
+        commande_queryset = CommandeService.objects.filter(
+            (
+                Q(idClient__name__icontains=query) |
+                Q(idClient__firstName__icontains=query) |
+                Q(idClient__phone__icontains=query)
+            ) &
+            Q(received=False) &
+            Q(payed=0)
+        )
+        paginator = Paginator(commande_queryset, limit)
+        try:
+            commande_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_paginated = []
+
+        serializer = CommandeServiceSerializer(commande_paginated, many=True)
+        data_paginated = {
+            'items': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="Commande service search successfully", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
 
 # SERVICE ITEMS API
 # --------------------------------------------------------------------------------
