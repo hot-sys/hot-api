@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import create_status, stat, get_all_status, confirmeCommande, confirmeNotReceivedCommande, search_item_service, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
+from .views import create_status, stat, search_commande, get_all_status, cancel_commande, get_all_commande_client, get_all_commande_reception, get_all_commande_client_wp, create_commande_client, confirmeCommande, confirmeNotReceivedCommande, search_item_service, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
 
 urlpatterns = [
     path('stat', stat, name='stat'),
@@ -11,9 +11,15 @@ urlpatterns = [
     path('recover/<int:idService>', recover_service, name='recover_service'),
 
     path('commande/create', create_commande, name='create_commande'),
+    path('commande/create-client', create_commande_client, name='create_commande_client'),
+    path('commande/search', search_commande, name='search_commande'),
     path('commande/filter', filter_commande, name='filter_commande'),
     path('commande/simulate', simulate, name='simulate'),
+    path('commande/cancel/<int:idCommande>', cancel_commande, name='cancel_commande'),
     path('commande/all', get_all_commande, name='get_all_commande'),
+    path('commande/toreception', get_all_commande_reception, name='get_all_commande_reception'),
+    path('commande/all-client/<int:idClient>', get_all_commande_client, name='get_all_commande_client'),
+    path('commande/all-client-wp/<int:idClient>', get_all_commande_client_wp, name='get_all_commande_client_wp'),
     path('commande/get/<int:idCommande>', get_commande_item, name='get_commande_item'),
     path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
     path('commande/confirme-no-received/<int:idCommande>', confirmeNotReceivedCommande, name='confirmeNotReceivedCommande'),

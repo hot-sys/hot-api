@@ -71,10 +71,6 @@ class RegisterDTO(serializers.Serializer):
         if User.objects.filter(login=value).exists():
             raise serializers.ValidationError("Login already exists.")
         return value
-    def checkEmail(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already exists.")
-        return value
 
 class UpdateUserDto(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)

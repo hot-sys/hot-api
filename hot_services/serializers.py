@@ -39,7 +39,7 @@ class CommandeServiceSerializer(serializers.ModelSerializer):
     idAdmin = UserSerializerResponse()
     class Meta:
         model = CommandeService
-        fields = 'idCommande', 'idCommandeCommune', 'idItem', 'idClient', 'idStatus', 'idAdmin', 'number', 'total', 'createdAt'
+        fields = 'idCommande', 'idCommandeCommune', 'idItem', 'idClient', 'idStatus', 'idAdmin', 'number', 'total', 'payed', 'createdAt'
 
 class ItemImageSerializer(serializers.ModelSerializer):
     class Meta:
