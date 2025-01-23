@@ -274,6 +274,46 @@ def confirmeNotReceivedCommande(request, idCommande):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="Commande service item canceled successfully"),
+        404: OpenApiResponse(description="Commande service item not found"),
+    },
+    description="Cancel a commande service item by ID",
+    summary="Cancel commande service item",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def cancel_commande(request, idCommande):
+    try:
+        commande = CommandeService.objects.get(idCommande=idCommande)
+        if commande.received == False and commande.payed == 0 and commande.idAdmin_id is None:
+            commande.delete()
+            list_cached_keys_by_prefix("comservice-")
+            delete_cache_by_prefix("comservice-")
+            delete_cache_by_prefix("stat-service")
+            return api_response(data=None, message="Commande service item canceled successfully", success=True, status_code=200)
+        else:
+            return api_response(data=None, message="Commande service item cannot be canceled", success=False, status_code=400)
+    except CommandeService.DoesNotExist:
+        return api_response(data=None, message="Commande service item not found", success=False, status_code=404)
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="Commande service item confirmed successfully"),
         404: OpenApiResponse(description="Commande service item not found"),
     },
