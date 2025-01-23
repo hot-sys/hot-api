@@ -103,7 +103,7 @@ def create_commande_client(request):
                 idCommandeCommune=validated_data['idCommandeCommune'],
                 idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
                 idStatus_id=validated_data['idStatus'],
-                payed=False,
+                payed=total,
                 number=validated_data['number'],
                 total=total,
             )
@@ -155,7 +155,7 @@ def create_commande(request):
                 idCommandeCommune=validated_data['idCommandeCommune'],
                 idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
                 idStatus_id=validated_data['idStatus'],
-                payed=True,
+                payed=0,
                 idAdmin_id=idAdmin,
                 number=validated_data['number'],
                 total=total,
@@ -357,7 +357,7 @@ def get_all_commande_client_wp(request, idClient):
 
         commandes = CommandeService.objects.filter(
                 Q(received=False) &
-                Q(payed=False) &
+                Q(payed=0) &
                 Q(idClient_id=idClient)
             ).order_by('-createdAt')
         paginator = Paginator(commandes, limit)
@@ -420,7 +420,7 @@ def get_all_commande_client(request, idClient):
 
         commandes = CommandeService.objects.filter(
                 Q(received=False) &
-                Q(payed=False) &
+                Q(payed=0) &
                 Q(idClient_id=idClient)
             ).order_by('-createdAt')
         paginator = Paginator(commandes, limit)
@@ -443,6 +443,62 @@ def get_all_commande_client(request, idClient):
         }
         set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Commande service list for client", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande service list to receptionne"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Get all commande service item to receptionne",
+    summary="Get all commande service item to receptionne",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_all_commande_reception(request):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('comservice-all-withpaginate-receptionnist', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande service list", success=True, status_code=200)
+
+        commandes = CommandeService.objects.filter(
+                Q(received=False) &
+                Q(payed=False)
+            )
+        paginator = Paginator(commandes, limit)
+        try:
+            commande_item_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_item_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_item_paginated = []
+
+        serializer = CommandeServiceSerializer(commande_item_paginated, many=True)
+        data_paginated = {
+            'items': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_item_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="Commande service list", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
 
@@ -477,7 +533,7 @@ def get_all_commande(request):
 
         commandes = CommandeService.objects.filter(
                 Q(received=False) &
-                Q(payed=True)
+                ~Q(payed=0)
             ).order_by('-createdAt')
         paginator = Paginator(commandes, limit)
         try:
