@@ -362,6 +362,55 @@ def confirmeCommande(request, idCommande):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="Commande service item receive successfully"),
+        404: OpenApiResponse(description="Commande service item not found"),
+    },
+    description="Receive a commande service item by ID",
+    summary="Receive commande service item",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='idCommande',
+            required=True,
+            type=int,
+            location=OpenApiParameter.PATH
+        )
+    ]
+)
+@api_view(['PATCH'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def receiveCommande(request, idCommande):
+    try:
+        commande = CommandeService.objects.get(idCommande=idCommande)
+        if commande.idAdmin:
+            return api_response(data=None, message="Commande service item already received", success=False, status_code=400)
+        try:
+            idAdmin = request.idUser
+            admin = User.objects.get(idUser=idAdmin)
+            commande.idAdmin = admin
+            commande.save()
+            serializer = CommandeServiceSerializer(commande)
+            create_history(admin, 2, commande, "Commande service item received")
+            list_cached_keys_by_prefix("comservice-")
+            delete_cache_by_prefix("comservice-")
+            return api_response(data=serializer.data, message="Commande service item received successfully", success=True, status_code=200)
+        except User.DoesNotExist:
+            return api_response(data=None, message="Admin not found", success=False, status_code=404)
+    except CommandeService.DoesNotExist:
+        return api_response(data=None, message="Commande service item not found", success=False, status_code=404)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="Commande service list for client"),
         500: OpenApiResponse(description="Internal Server Error")
     },

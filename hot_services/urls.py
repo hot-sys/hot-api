@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import create_status, stat, search_commande, get_all_status, cancel_commande, get_all_commande_client, get_all_commande_reception, get_all_commande_client_wp, create_commande_client, confirmeCommande, confirmeNotReceivedCommande, search_item_service, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
+from .views import create_status, stat, search_commande, receiveCommande, get_all_status, cancel_commande, get_all_commande_client, get_all_commande_reception, get_all_commande_client_wp, create_commande_client, confirmeCommande, confirmeNotReceivedCommande, search_item_service, get_image_item_service, create_image_item_service, delete_image_item_service, filter_commande, simulate, create_item_service, create_commande, get_commande_item, get_all_commande, update_item_service, delete_item_service, recover_item_service, get_detail_item, get_all_service_item, update_service, delete_service, recover_service, create_service, get_by_id_service, update_status, get_by_id_status, get_all_service
 
 urlpatterns = [
     path('stat', stat, name='stat'),
@@ -22,6 +22,7 @@ urlpatterns = [
     path('commande/all-client-wp/<int:idClient>', get_all_commande_client_wp, name='get_all_commande_client_wp'),
     path('commande/get/<int:idCommande>', get_commande_item, name='get_commande_item'),
     path('commande/confirme/<int:idCommande>', confirmeCommande, name='confirmeCommande'),
+    path('commande/receive/<int:idCommande>', receiveCommande, name='receiveCommande'),
     path('commande/confirme-no-received/<int:idCommande>', confirmeNotReceivedCommande, name='confirmeNotReceivedCommande'),
 
     path('item/search/<int:idService>', search_item_service, name='search_item_service'),
