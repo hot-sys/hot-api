@@ -103,7 +103,7 @@ def create_commande_client(request):
                 idCommandeCommune=validated_data['idCommandeCommune'],
                 idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
                 idStatus_id=validated_data['idStatus'],
-                payed=total,
+                payed=0,
                 number=validated_data['number'],
                 total=total,
             )
@@ -344,6 +344,7 @@ def confirmeCommande(request, idCommande):
         if commande.idStatus_id == 3:
             return api_response(data=None, message="Commande service item already confirmed", success=False, status_code=400)
         commande.idStatus_id = 3
+        commande.payed = commande.total
         commande.save()
         serializer = CommandeServiceSerializer(commande)
         try:
@@ -353,6 +354,8 @@ def confirmeCommande(request, idCommande):
         except User.DoesNotExist:
             return api_response(data=None, message="Admin not found", success=False, status_code=404)
         list_cached_keys_by_prefix("comservice-")
+        delete_cache_by_prefix("comservice-")
+        delete_cache_by_prefix("comservice-")
         delete_cache_by_prefix("comservice-")
         return api_response(data=serializer.data, message="Commande service item confirmed successfully", success=True, status_code=200)
     except CommandeService.DoesNotExist:
@@ -537,6 +540,63 @@ def get_all_commande_client(request, idClient):
 
 @extend_schema(
     responses={
+        200: OpenApiResponse(description="Commande service list to receptionne received"),
+        500: OpenApiResponse(description="Internal Server Error")
+    },
+    description="Get all commande service item to receptionne received",
+    summary="Get all commande service item to receptionne received",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        )
+    ]
+)
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def get_all_commande_received(request):
+    try:
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        # cache_key = generate_cache_key('comservice-all-withpaginate-receptionnist-recept', page=page, limit=limit)
+        # cached_data = get_cached_data(cache_key)
+        # if cached_data:
+        #     return api_response(data=cached_data, message="Commande service list received", success=True, status_code=200)
+
+        commandes = CommandeService.objects.filter(
+                Q(received=False) &
+                Q(payed=False) &
+                Q(idAdmin__isnull=False)
+            )
+        paginator = Paginator(commandes, limit)
+        try:
+            commande_item_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_item_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_item_paginated = []
+
+        serializer = CommandeServiceSerializer(commande_item_paginated, many=True)
+        data_paginated = {
+            'items': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_item_paginated.number,
+                'limit': limit
+            }
+        }
+        # set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="Commande service list received", success=True, status_code=200)
+    except Exception as e:
+        return api_response(message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
         200: OpenApiResponse(description="Commande service list to receptionne"),
         500: OpenApiResponse(description="Internal Server Error")
     },
@@ -562,11 +622,12 @@ def get_all_commande_reception(request):
         cache_key = generate_cache_key('comservice-all-withpaginate-receptionnist', page=page, limit=limit)
         cached_data = get_cached_data(cache_key)
         if cached_data:
-            return api_response(data=cached_data, message="Commande service list", success=True, status_code=200)
+            return api_response(data=cached_data, message="Commande service list from cache", success=True, status_code=200)
 
         commandes = CommandeService.objects.filter(
                 Q(received=False) &
-                Q(payed=False)
+                Q(payed=0) &
+                Q(idAdmin__isnull=True)
             )
         paginator = Paginator(commandes, limit)
         try:
@@ -740,6 +801,29 @@ def filter_commande(request):
     except Exception as e:
         return api_response(data=None, message=str(e), success=False, status_code=500)
 
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande service search successfully"),
+        400: OpenApiResponse(description="Search query cannot be empty"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Search commandes service by a query",
+    summary="Search commandes service",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='query',
+            required=True,
+            type=str,
+            location=OpenApiParameter.QUERY
+        )
+    ]
+)
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @token_required
@@ -763,7 +847,80 @@ def search_commande(request):
                 Q(idClient__phone__icontains=query)
             ) &
             Q(received=False) &
-            Q(payed=0)
+            Q(payed=0) &
+            Q(idAdmin__isnull=True)
+        )
+        paginator = Paginator(commande_queryset, limit)
+        try:
+            commande_paginated = paginator.page(page)
+        except PageNotAnInteger:
+            commande_paginated = paginator.page(1)
+        except EmptyPage:
+            commande_paginated = []
+
+        serializer = CommandeServiceSerializer(commande_paginated, many=True)
+        data_paginated = {
+            'items': serializer.data,
+            'paginations': {
+                'document': len(serializer.data),
+                'total_pages': paginator.num_pages,
+                'current_page': commande_paginated.number,
+                'limit': limit
+            }
+        }
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        return api_response(data=data_paginated, message="Commande service search successfully", success=True, status_code=200)
+    except Exception as e:
+        return api_response(data=None, message=str(e), success=False, status_code=500)
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="Commande service search successfully"),
+        400: OpenApiResponse(description="Search query cannot be empty"),
+        500: OpenApiResponse(description="Internal server error")
+    },
+    description="Search commandes service by a query",
+    summary="Search commandes service",
+    parameters=[
+        OpenApiParameter(
+            name='Authorization',
+            required=True,
+            type=str,
+            location=OpenApiParameter.HEADER
+        ),
+        OpenApiParameter(
+            name='query',
+            required=True,
+            type=str,
+            location=OpenApiParameter.QUERY
+        )
+    ]
+)
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@token_required
+@checkUser
+def search_commande_received(request):
+    try:
+        data = request.data
+        query = data.get('query', '')
+        if query == '':
+            return api_response(data=None, message="Search query cannot be empty", success=False, status_code=400)
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+        cache_key = generate_cache_key('comservice-commmande-item', query=query, page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande service search successfully", success=True, status_code=200)
+        commande_queryset = CommandeService.objects.filter(
+            (
+                Q(idClient__name__icontains=query) |
+                Q(idClient__firstName__icontains=query) |
+                Q(idClient__phone__icontains=query)
+            ) &
+            Q(received=False) &
+            Q(payed=0) &
+            Q(idAdmin__isnull=False)
         )
         paginator = Paginator(commande_queryset, limit)
         try:
