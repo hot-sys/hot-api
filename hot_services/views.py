@@ -155,7 +155,7 @@ def create_commande(request):
                 idCommandeCommune=validated_data['idCommandeCommune'],
                 idClient_id=validated_data['idClient'] if 'idClient' in validated_data else None,
                 idStatus_id=validated_data['idStatus'],
-                payed=0,
+                payed=total,
                 idAdmin_id=idAdmin,
                 number=validated_data['number'],
                 total=total,
