@@ -1,4 +1,3 @@
-
 from rest_framework.decorators import api_view, authentication_classes, parser_classes
 from utils.token_required import token_required
 from utils.api_response import api_response
@@ -562,10 +561,10 @@ def get_all_commande_received(request):
     try:
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
-        # cache_key = generate_cache_key('comservice-all-withpaginate-receptionnist-recept', page=page, limit=limit)
-        # cached_data = get_cached_data(cache_key)
-        # if cached_data:
-        #     return api_response(data=cached_data, message="Commande service list received", success=True, status_code=200)
+        cache_key = generate_cache_key('comservice-all-withpaginate-receptionnist-recept', page=page, limit=limit)
+        cached_data = get_cached_data(cache_key)
+        if cached_data:
+            return api_response(data=cached_data, message="Commande service list received", success=True, status_code=200)
 
         commandes = CommandeService.objects.filter(
                 Q(received=False) &
@@ -590,7 +589,7 @@ def get_all_commande_received(request):
                 'limit': limit
             }
         }
-        # set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
+        set_cached_data(cache_key, data_paginated, timeout=settings.CACHE_TTL)
         return api_response(data=data_paginated, message="Commande service list received", success=True, status_code=200)
     except Exception as e:
         return api_response(message=str(e), success=False, status_code=500)
